@@ -1,0 +1,29 @@
+# Demo working copy (python <app>/server.py --demo) and local config
+.demo_run/
+config.json
+*.local.json
+
+# Server logs written by scripts/start_review.ps1
+*.log
+
+# Real review data never belongs in this repo -- keep it outside or ignore it here
+data/
+media/
+!docs/video/media/
+selects_backups/
+*.mp4
+*.mov
+*.mkv
+*.webm
+!sample_data/**/*.mp4
+!docs/video/media/**/*.mp4
+
+# Python / OS / editor noise
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

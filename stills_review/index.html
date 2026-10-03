@@ -1,0 +1,623 @@
+<!doctype html>
+<!--
+  Stills review UI  (served by stills_review/server.py at http://127.0.0.1:8765/)
+  =============================================================================
+  WHAT: single-file page (no build step, no external assets). For the current clip it shows the
+        original frame ("Before") vs one candidate still in a drag slider (or click-to-toggle mode),
+        plus a thumbnail strip of all candidates. The reviewer picks one candidate per clip.
+  WHEN: stage 1 of a LoRA dataset review (choose the look frame before the expensive video render).
+  INPUT:  GET /api/clips (clip list + candidate files), GET /api/selects (saved decisions).
+  OUTPUT: POST /api/selects -> server writes <stills>/selects.json:
+            {"clip_001": {"select": 2, "rerun": false, "updated": "...", "removed": true?}}
+  KEYS:   1-9,0 pick s01-s10 | R rerun | X remove from set | Left/Right nudge divider (slider) or
+          flip before/after (toggle) | Up/Down or [ ] prev/next clip | N next undecided |
+          P show picked | M slider/toggle | Home/End first/last
+  SAFETY RULES baked into the JS (keep them if you edit this file):
+    * State is only POSTed after a trusted user gesture (click / key press). Never on load,
+      navigation, refresh or preview, so opening the page can never change selects.json.
+    * Unsynced edits from an earlier session are parked in localStorage, NOT auto-sent.
+    * The visible list is fixed for the session: only clips decided BEFORE the round started
+      (round.json "round_start_hidden", or the set decided at page load) are hidden. Picks made
+      now stay listed so navigation never jumps.
+  URLS:   all requests are RELATIVE (api/..., img/...) so the page also works behind a sub-path and
+          in the static GitHub Pages demo (docs/stills/, built by tools/build_pages.py), where the
+          DEMO-ONLY docs/assets/demo-shim.js answers api/* from localStorage instead of a server.
+  HAND-OFF: give the user the URL + the key list above; read results from /api/aleph_queue.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stills review</title>
+<link rel="icon" href="data:,">
+<style>
+  :root { --bg:#0f1012; --panel:#17191c; --line:#2a2d32; --fg:#e6e6e6; --dim:#8a8f98;
+          --acc:#4da3ff; --ok:#3ecf8e; --warn:#ff6b5a; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; background:var(--bg); color:var(--fg);
+               font:14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { position:sticky; top:0; z-index:5; display:flex; flex-wrap:wrap; align-items:center;
+           gap:10px 14px; padding:10px 16px; background:var(--panel); border-bottom:1px solid var(--line); }
+  #clip-name { font-size:20px; font-weight:650; letter-spacing:.3px; }
+  #clip-index { color:var(--dim); font-variant-numeric: tabular-nums; }
+  button, select { background:#22252a; color:var(--fg); border:1px solid var(--line); border-radius:6px;
+                   padding:6px 10px; font:inherit; cursor:pointer; }
+  button:hover, select:hover { border-color:#3b4048; }
+  button:disabled { opacity:.4; cursor:default; }
+  .badge { padding:3px 9px; border-radius:999px; font-weight:600; font-size:13px; border:1px solid var(--line); }
+  .badge.sel { background:rgba(62,207,142,.15); color:var(--ok); border-color:rgba(62,207,142,.4); }
+  .badge.rerun { background:rgba(255,107,90,.15); color:var(--warn); border-color:rgba(255,107,90,.45); }
+  .badge.none { color:var(--dim); }
+  .spacer { flex:1; }
+  #progress { color:var(--dim); font-variant-numeric: tabular-nums; }
+  #progress b { color:var(--fg); }
+  #saved { min-width:90px; text-align:right; color:var(--dim); font-size:13px; transition:color .2s; }
+  #saved.ok { color:var(--ok); } #saved.err { color:var(--warn); } #saved.busy { color:var(--acc); }
+  main { padding:14px 16px 28px; }
+  #stage-wrap { display:flex; justify-content:center; }
+  #stage { position:relative; width:100%; max-width:1280px; aspect-ratio:16/9; background:#000;
+           overflow:hidden; border-radius:6px; user-select:none; -webkit-user-select:none; touch-action:pan-y; }
+  #stage img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; pointer-events:none;
+               -webkit-user-drag:none; }
+  #stage.slider { cursor:ew-resize; }
+  #img-after { clip-path: inset(0 0 0 var(--pos,50%)); }
+  #divider { position:absolute; top:0; bottom:0; left:var(--pos,50%); width:0; pointer-events:none; }
+  #divider::before { content:""; position:absolute; top:0; bottom:0; left:-1px; width:2px; background:#fff;
+                     box-shadow:0 0 0 1px rgba(0,0,0,.45); }
+  #divider::after { content:"\2194"; position:absolute; top:50%; left:0; transform:translate(-50%,-50%);
+                    width:34px; height:34px; border-radius:50%; background:rgba(255,255,255,.92); color:#111;
+                    display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:700;
+                    box-shadow:0 1px 6px rgba(0,0,0,.5); }
+  .lbl { position:absolute; top:10px; padding:3px 9px; border-radius:5px; background:rgba(0,0,0,.6);
+         font-size:13px; font-weight:600; letter-spacing:.3px; pointer-events:none; }
+  #lbl-before { left:10px; } #lbl-after { right:10px; }
+  #stage.toggle #divider, #stage.toggle #lbl-after { display:none; }
+  #stage.toggle #img-after { clip-path:none; }
+  #stage.toggle.show-before #img-after { visibility:hidden; }
+  #stage.rerun::after { content:"RERUN"; position:absolute; right:10px; bottom:10px; padding:3px 10px; border-radius:5px;
+                        background:rgba(255,107,90,.85); color:#fff; font-weight:700; letter-spacing:1px; }
+  #controls { max-width:1280px; margin:12px auto 0; display:flex; flex-wrap:wrap; align-items:center; gap:10px 16px; }
+  .seg { display:inline-flex; border:1px solid var(--line); border-radius:7px; overflow:hidden; }
+  .seg button { border:0; border-radius:0; background:#1d2024; }
+  .seg button[aria-pressed="true"] { background:var(--acc); color:#06121f; font-weight:650; }
+  #toggle-btns { display:none; gap:6px; }
+  body[data-mode="toggle"] #toggle-btns { display:inline-flex; }
+  #toggle-btns button[aria-pressed="true"] { border-color:var(--acc); color:var(--acc); }
+  label.rerun { display:inline-flex; align-items:center; gap:7px; cursor:pointer; padding:5px 10px;
+                border:1px solid var(--line); border-radius:6px; }
+  label.rerun input { width:16px; height:16px; accent-color:var(--warn); }
+  body[data-rerun="true"] label.rerun { border-color:rgba(255,107,90,.6); color:var(--warn); }
+  #thumbs { max-width:1280px; margin:12px auto 0; display:grid; grid-template-columns:repeat(auto-fill,minmax(118px,1fr)); gap:8px; }
+  .thumb { position:relative; padding:0; border:2px solid transparent; border-radius:6px; overflow:hidden; background:#000;
+           aspect-ratio:16/9; }
+  .thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+  .thumb .num { position:absolute; left:5px; top:4px; min-width:22px; padding:1px 6px; border-radius:4px;
+                background:rgba(0,0,0,.7); font-size:12px; font-weight:700; }
+  .thumb:hover { border-color:#50565f; }
+  .thumb.previewing { border-color:#6b7280; }
+  .thumb[aria-selected="true"] { border-color:var(--ok); box-shadow:0 0 0 2px rgba(62,207,142,.35); }
+  .thumb[aria-selected="true"] .num { background:var(--ok); color:#04130c; }
+  body[data-rerun="true"] #thumbs { opacity:.35; filter:grayscale(.8); }
+  body[data-rerun="true"] .thumb[aria-selected="true"] { border-color:#777; box-shadow:none; }
+  #hint { max-width:1280px; margin:10px auto 0; color:#6c717a; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #hint kbd { font:inherit; color:#9aa0a8; background:#1c1f23; border:1px solid #2c3036; border-radius:3px; padding:0 4px; }
+  #empty { display:none; text-align:center; color:var(--dim); padding:80px 0; }
+  body.empty #empty { display:block; } body.empty #app { display:none; }
+  #jump option.decided { color:var(--ok); }
+  /* removed from set */
+  .badge.removed { background:#c62828; color:#fff; border-color:#ff5252; }
+  #remove { display:inline-flex; align-items:center; gap:7px; padding:5px 10px; }
+  #remove .key { color:var(--dim); }
+  body[data-removed="true"] #remove { background:#c62828; border-color:#ff5252; color:#fff; font-weight:650; }
+  body[data-removed="true"] #remove .key { color:#ffd6d6; }
+  #stage.removed img { opacity:.35; filter:grayscale(1); }
+  #stage.removed::before { content:"REMOVED FROM SET"; position:absolute; left:50%; top:50%; z-index:3;
+                           transform:translate(-50%,-50%) rotate(-8deg); padding:8px 22px; border-radius:6px;
+                           background:rgba(198,40,40,.92); color:#fff; font-size:clamp(11px,2.4vw,26px); font-weight:800; white-space:nowrap;
+                           letter-spacing:2px; border:2px solid #ff8a80; pointer-events:none; }
+  body[data-removed="true"] #thumbs { opacity:.3; filter:grayscale(1); }
+  body[data-removed="true"] #clip-name { color:#ff6b6b; text-decoration:line-through; }
+  #jump option.removed { color:#ff6b6b; }
+  #removed-count { color:#ff6b6b; }
+  /* needs-decision filter */
+  #show-picked { padding:4px 9px; font-size:13px; }
+  #show-picked .key { color:var(--dim); }
+  #show-picked[aria-pressed="true"] { border-color:var(--acc); color:var(--acc); }
+  #visible-count { color:var(--acc); }
+  #alldone { display:none; text-align:center; color:var(--ok); padding:80px 0; font-size:16px; }
+  body.alldone #alldone { display:block; } body.alldone #app { display:none; }
+</style>
+</head>
+<body data-clip="" data-select="" data-rerun="false" data-removed="false" data-mode="slider">
+<header>
+  <button id="prev" title="Previous clip (Up / [)">&#9664; Prev</button>
+  <span id="clip-name">&mdash;</span>
+  <span id="clip-index">0/0</span>
+  <button id="next" title="Next clip (Down / ])">Next &#9654;</button>
+  <select id="jump" title="Jump to clip" aria-label="Jump to clip"></select>
+  <button type="button" id="show-picked" aria-pressed="false" title="Also show the clips that were already picked (or removed) before this selection round started. Off = hide them.">Show picked <span class="key">(P)</span></button>
+  <span id="status" class="badge none">none</span>
+  <span class="spacer"></span>
+  <span id="progress">Decided <b id="decided-count">0</b>/<span id="total-count">0</span><span id="removed-count"></span><span id="visible-count"></span><span id="waiting"></span></span>
+  <span id="saved" aria-live="polite"></span>
+</header>
+
+<main>
+  <div id="alldone">All clips in this round were decided before it started. Press <b>P</b> / &ldquo;Show picked&rdquo; to review them.</div>
+  <div id="empty">No clips ready yet (need &lt;clip&gt;_original.png + at least one &lt;clip&gt;_sNN.png). This page re-checks every 30&nbsp;s.</div>
+  <div id="app">
+    <div id="stage-wrap">
+      <div id="stage" class="slider" aria-label="Before/after comparison">
+        <img id="img-before" alt="Before (original)">
+        <img id="img-after" alt="Selected option">
+        <div id="divider"></div>
+        <span class="lbl" id="lbl-before">Before</span>
+        <span class="lbl" id="lbl-after">s01</span>
+      </div>
+    </div>
+
+    <div id="controls">
+      <div class="seg" role="group" aria-label="Compare mode">
+        <button id="mode-slider" data-mode="slider" aria-pressed="true">Slider</button>
+        <button id="mode-toggle" data-mode="toggle" aria-pressed="false">Toggle</button>
+      </div>
+      <div id="toggle-btns">
+        <button id="show-before" aria-pressed="false">&#9664; Before</button>
+        <button id="show-after" aria-pressed="true">After &#9654;</button>
+      </div>
+      <label class="rerun"><input type="checkbox" id="rerun" data-clip=""> Rerun <span style="color:var(--dim)">(R)</span></label>
+      <button type="button" id="remove" aria-pressed="false" data-clip="" title="Remove this clip from the set; removed clips are skipped by the next pipeline step (X toggles)"><span class="lbl-text">Remove from set</span> <span class="key">(X)</span></button>
+    </div>
+
+    <div id="thumbs" role="listbox" aria-label="Options"></div>
+
+    <div id="hint">
+      <kbd>1</kbd>–<kbd>9</kbd>,<kbd>0</kbd> select s01–s10 &middot; <kbd>R</kbd> rerun &middot; <kbd>X</kbd> remove from set &middot;
+      <kbd>&larr;</kbd><kbd>&rarr;</kbd> nudge divider / flip before-after &middot;
+      <kbd>&uarr;</kbd><kbd>&darr;</kbd> or <kbd>[</kbd><kbd>]</kbd> prev/next clip &middot;
+      <kbd>M</kbd> slider/toggle &middot; <kbd>N</kbd> next undecided &middot; <kbd>P</kbd> show picked
+    </div>
+  </div>
+  <div id="selects-summary" hidden></div>
+</main>
+
+<script>
+(() => {
+  "use strict";
+  const LS_BACKUP = "stills_review.selects_backup";
+  const LS_PENDING = "stills_review.pending";
+  const LS_UI = "stills_review.ui";
+  const $ = (id) => document.getElementById(id);
+  const pad = (n) => String(n).padStart(2, "0");
+  const imgUrl = (clip, file) => `img/${encodeURIComponent(clip)}/${encodeURIComponent(file)}`;
+
+  let allClips = [];       // every clip in the round, from /api/clips
+  let clips = [];          // clips shown in the list: all except the fixed round-start hidden list (unless Show picked)
+  let showPicked = false;  // P toggle; off on every page load
+  // Fixed snapshot from round.json "round_start_hidden": clips already picked (or removed) before this
+  // selection round started. Only these are hidden. Clips picked/removed during the round stay listed;
+  // the list never changes on navigation, picks, removals or reloads.
+  let hiddenSet = null;
+  let waiting = [];
+  let selects = {};        // clip -> {select, rerun, updated, removed?}  (removed clips are skipped by the next step)
+  let idx = 0;
+  const ui = Object.assign({ mode: "slider", pos: 0.5, lastClip: null }, readLS(LS_UI, {}));
+  let showBefore = false;  // toggle mode
+  let previewN = null;     // option shown when nothing selected
+  const preloaded = new Map();
+
+  function readLS(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? d; } catch { return d; } }
+  function writeLS(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+  function saveUI() { writeLS(LS_UI, ui); }
+
+  const cur = () => clips[idx];
+  const stateOf = (clip) => selects[clip] || { select: null, rerun: false };
+  const isRemoved = (clip) => stateOf(clip).removed === true;
+  const isDecided = (clip) => { const s = stateOf(clip); return s.removed === true || !!s.rerun || s.select != null; };
+  // Page filter only (selects.json and /api/aleph_queue are untouched).
+  const needsDecision = (clip) => { const s = stateOf(clip); return s.removed !== true && (!!s.rerun || s.select == null); };
+  const isVisible = (c) => showPicked || !(hiddenSet && hiddenSet.has(c.clip));
+  // Rebuild the shown list (only at load, on P, or when the round's clip set changes);
+  // keep `prefer` if shown, else the next shown clip after it (wrapping).
+  function refilter(prefer) {
+    clips = allClips.filter(isVisible);
+    if (!clips.length) { idx = 0; return; }
+    let i = clips.findIndex((c) => c.clip === prefer);
+    if (i < 0) {
+      const pos = allClips.findIndex((c) => c.clip === prefer);
+      i = clips.findIndex((c) => allClips.indexOf(c) > pos);
+      if (i < 0) i = 0;
+    }
+    idx = i;
+  }
+
+  function afterOption(c) {
+    const s = stateOf(c.clip);
+    const has = (n) => c.options.some((o) => o.n === n);
+    if (s.select != null && has(s.select)) return c.options.find((o) => o.n === s.select);
+    if (previewN != null && has(previewN)) return c.options.find((o) => o.n === previewN);
+    return c.options[0];
+  }
+
+  // ---------- data (server I/O; localStorage is only a backup) ----------
+  async function loadClips() {
+    const r = await fetch("api/clips", { cache: "no-store" });
+    const j = await r.json();
+    return j;
+  }
+  async function loadSelects() {
+    try {
+      const r = await fetch("api/selects", { cache: "no-store" });
+      if (!r.ok) throw new Error(r.status);
+      return await r.json();
+    } catch (e) {
+      setSaved("err", "Server offline – using local backup");
+      return readLS(LS_BACKUP, {});
+    }
+  }
+
+  let saveSeq = 0;
+  async function save(clip) {
+    const s = stateOf(clip);
+    const pending = readLS(LS_PENDING, {});
+    pending[clip] = { select: s.select, rerun: !!s.rerun, removed: s.removed === true };
+    writeLS(LS_PENDING, pending);
+    writeLS(LS_BACKUP, selects);
+    return await flushPending();
+  }
+  async function flushPending() {
+    const pending = readLS(LS_PENDING, {});
+    if (!Object.keys(pending).length) return true;
+    const seq = ++saveSeq;
+    setSaved("busy", "Saving…");
+    try {
+      const r = await fetch("api/selects", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(pending),
+      });
+      const j = await r.json();
+      if (!r.ok || !j.ok) throw new Error(j.error || r.status);
+      // drop only entries that haven't changed since we sent them
+      const now = readLS(LS_PENDING, {});
+      for (const [k, v] of Object.entries(pending)) {
+        if (now[k] && now[k].select === v.select && now[k].rerun === v.rerun && !!now[k].removed === !!v.removed) delete now[k];
+        if (j.saved && j.saved[k] && selects[k] && selects[k].select === v.select && selects[k].rerun === v.rerun &&
+            (selects[k].removed === true) === !!v.removed)
+          selects[k].updated = j.saved[k].updated;
+      }
+      writeLS(LS_PENDING, now);
+      writeLS(LS_BACKUP, selects);
+      if (seq === saveSeq) setSaved("ok", "Saved \u2713");
+      return true;
+    } catch (e) {
+      if (seq === saveSeq) setSaved("err", "Save failed – kept locally");
+      return false;
+    }
+  }
+  let savedTimer = null;
+  function setSaved(cls, text) {
+    const el = $("saved");
+    el.className = cls; el.textContent = text;
+    clearTimeout(savedTimer);
+    if (cls === "ok") savedTimer = setTimeout(() => { el.className = ""; el.textContent = "Saved"; }, 2500);
+  }
+
+  // ---------- actions (the ONLY places that change state) ----------
+  // State is only ever POSTed from an explicit, trusted user action (thumbnail click,
+  // number key, R key / rerun checkbox, X key / Remove-from-set button). Never on load, navigation, refresh or preview.
+  // A real gesture = trusted pointerdown/keydown in the last 1.5 s (script .click() has none).
+  let lastGesture = 0;
+  for (const t of ["pointerdown", "keydown"])
+    window.addEventListener(t, (e) => { if (e.isTrusted) lastGesture = performance.now(); }, true);
+  const isUserAction = (ev) => !!(ev && ev.isTrusted) && performance.now() - lastGesture < 1500;
+  function setSelect(n, ev) {
+    if (!isUserAction(ev)) return;
+    const c = cur(); if (!c || !c.options.some((o) => o.n === n)) return;
+    const s = Object.assign({}, stateOf(c.clip));
+    s.select = n; s.updated = new Date().toISOString();
+    selects[c.clip] = s;
+    previewN = null;
+    render(); save(c.clip);
+  }
+  function setRerun(v, ev) {
+    if (!isUserAction(ev)) return;
+    const c = cur(); if (!c) return;
+    const s = Object.assign({}, stateOf(c.clip));
+    s.rerun = !!v; s.updated = new Date().toISOString();
+    selects[c.clip] = s;
+    render(); save(c.clip);
+  }
+  function setRemoved(v, ev) {
+    if (!isUserAction(ev)) return;
+    const c = cur(); if (!c) return;
+    const s = Object.assign({}, stateOf(c.clip));
+    if (v) s.removed = true; else delete s.removed;
+    s.updated = new Date().toISOString();
+    selects[c.clip] = s;
+    render(); save(c.clip);
+  }
+  function goto(i) {
+    if (!clips.length) return;
+    idx = Math.max(0, Math.min(clips.length - 1, i));
+    previewN = null; showBefore = false;
+    ui.lastClip = cur().clip; saveUI();
+    if (location.hash !== "#" + cur().clip) history.replaceState(null, "", "#" + cur().clip);
+    render(true);
+  }
+  function nextUndecided() {
+    for (let k = 1; k <= clips.length; k++) {
+      const j = (idx + k) % clips.length;
+      if (needsDecision(clips[j].clip)) return goto(j);
+    }
+  }
+  function setShowPicked(v) {
+    showPicked = !!v;
+    const keep = cur() && cur().clip;
+    refilter(keep);
+    if (clips.length && cur().clip !== keep) goto(idx); else render(true);
+  }
+  function setMode(m) { ui.mode = m; saveUI(); showBefore = false; render(); }
+  function setPos(p) {
+    ui.pos = Math.max(0, Math.min(1, p));
+    $("stage").style.setProperty("--pos", (ui.pos * 100).toFixed(2) + "%");
+  }
+
+  // ---------- render (pure view of `clips`/`selects`; never saves) ----------
+  function render(clipChanged) {
+    document.body.classList.toggle("empty", !allClips.length);
+    document.body.classList.toggle("alldone", allClips.length > 0 && !clips.length);
+    $("show-picked").setAttribute("aria-pressed", String(showPicked));
+    renderSummary();
+    renderProgress();
+    if (!clips.length) { document.body.dataset.clip = ""; renderJump(); return; }
+    const c = cur(), s = stateOf(c.clip), after = afterOption(c);
+    const rerun = !!s.rerun;
+    const removed = s.removed === true;
+    const b = document.body;
+    b.dataset.clip = c.clip;
+    b.dataset.select = s.select ?? "";
+    b.dataset.rerun = String(rerun);
+    b.dataset.removed = String(removed);
+    b.dataset.mode = ui.mode;
+    b.dataset.after = after ? after.file : "";
+
+    $("clip-name").textContent = c.clip;
+    $("clip-index").textContent = `${idx + 1}/${clips.length}`;
+    $("prev").disabled = idx === 0;
+    $("next").disabled = idx === clips.length - 1;
+    const st = $("status");
+    if (removed) { st.className = "badge removed"; st.textContent = "REMOVED FROM SET" + (s.select != null ? ` (had s${pad(s.select)})` : ""); }
+    else if (rerun) { st.className = "badge rerun"; st.textContent = "RERUN" + (s.select != null ? ` (kept s${pad(s.select)})` : ""); }
+    else if (s.select != null) { st.className = "badge sel"; st.textContent = `Selected s${pad(s.select)}`; }
+    else { st.className = "badge none"; st.textContent = "none"; }
+
+    // stage
+    const stage = $("stage");
+    const ib = $("img-before"), ia = $("img-after");
+    const bsrc = imgUrl(c.clip, c.original), asrc = after ? imgUrl(c.clip, after.file) : "";
+    if (ib.getAttribute("src") !== bsrc) ib.src = bsrc;
+    if (ia.getAttribute("src") !== asrc) ia.src = asrc;
+    const alabel = after ? `s${pad(after.n)}` + (s.select == null ? " (preview)" : "") : "";
+    $("lbl-after").textContent = alabel;
+    stage.classList.toggle("slider", ui.mode === "slider");
+    stage.classList.toggle("toggle", ui.mode === "toggle");
+    stage.classList.toggle("show-before", ui.mode === "toggle" && showBefore);
+    stage.classList.toggle("rerun", rerun);
+    stage.classList.toggle("removed", removed);
+    $("lbl-before").textContent = ui.mode === "toggle" ? (showBefore ? "Before" : alabel) : "Before";
+    setPos(ui.pos);
+    $("mode-slider").setAttribute("aria-pressed", String(ui.mode === "slider"));
+    $("mode-toggle").setAttribute("aria-pressed", String(ui.mode === "toggle"));
+    $("show-before").setAttribute("aria-pressed", String(showBefore));
+    $("show-after").setAttribute("aria-pressed", String(!showBefore));
+
+    const cb = $("rerun");
+    cb.checked = rerun; cb.dataset.clip = c.clip;
+    const rb = $("remove");
+    rb.setAttribute("aria-pressed", String(removed)); rb.dataset.clip = c.clip;
+    rb.querySelector(".lbl-text").textContent = removed ? "Removed ✕ (undo)" : "Remove from set";
+
+    // thumbs
+    const th = $("thumbs");
+    if (clipChanged || th.dataset.clip !== c.clip || th.children.length !== c.options.length) {
+      th.innerHTML = ""; th.dataset.clip = c.clip;
+      for (const o of c.options) {
+        const btn = document.createElement("button");
+        btn.className = "thumb"; btn.type = "button"; btn.setAttribute("role", "option");
+        btn.dataset.option = String(o.n); btn.dataset.file = o.file; btn.dataset.clip = c.clip;
+        btn.title = `s${pad(o.n)} (key ${o.n === 10 ? 0 : o.n})`;
+        btn.innerHTML = `<img loading="eager" decoding="async" alt="s${pad(o.n)}"><span class="num">${o.n}</span>`;
+        btn.querySelector("img").src = imgUrl(c.clip, o.file);
+        btn.addEventListener("click", (ev) => setSelect(o.n, ev));
+        th.appendChild(btn);
+      }
+    }
+    for (const btn of th.children) {
+      const n = +btn.dataset.option;
+      btn.setAttribute("aria-selected", String(s.select === n));
+      btn.classList.toggle("previewing", s.select == null && after && after.n === n);
+    }
+    renderJump();
+    if (clipChanged) preloadAround();
+  }
+  function renderProgress() {
+    $("decided-count").textContent = allClips.filter((c) => isDecided(c.clip)).length;
+    $("total-count").textContent = allClips.length;
+    const todo = allClips.filter((c) => needsDecision(c.clip)).length;
+    $("visible-count").textContent = (showPicked ? ` \u00b7 showing all ${clips.length}` : ` \u00b7 listed ${clips.length}`) + ` \u00b7 ${todo} to do`;
+    const nrem = allClips.filter((c) => isRemoved(c.clip)).length;
+    $("removed-count").textContent = nrem ? ` · ${nrem} removed` : "";
+    $("waiting").textContent = waiting.length ? ` \u00b7 ${waiting.length} waiting` : "";
+  }
+  function renderJump() {
+    const j = $("jump");
+    const sig = clips.map((c) => { const s = stateOf(c.clip);
+      return c.clip + (isRemoved(c.clip) ? "x" : "") + (s.rerun ? "r" : "") + (s.select ?? ""); }).join(",");
+    if (j.dataset.sig !== sig) {
+      j.innerHTML = ""; j.dataset.sig = sig;
+      clips.forEach((c, i) => {
+        const s = stateOf(c.clip);
+        const o = document.createElement("option");
+        o.value = String(i);
+        const rm = s.removed === true;
+        o.textContent = `${rm ? "\u2715" : s.rerun ? "\u21bb" : s.select != null ? "\u2713" : "\u00a0\u00a0"} ${c.clip}` +
+          (rm ? " REMOVED" : s.rerun ? " RERUN" : s.select != null ? ` s${pad(s.select)}` : "");
+        if (rm) o.className = "removed"; else if (isDecided(c.clip)) o.className = "decided";
+        o.dataset.clip = c.clip;
+        j.appendChild(o);
+      });
+    }
+    j.value = String(idx);
+  }
+  function renderSummary() {
+    const box = $("selects-summary");
+    box.innerHTML = "";
+    for (const c of allClips) {
+      const s = stateOf(c.clip);
+      const sp = document.createElement("span");
+      sp.className = "clip-state";
+      sp.dataset.clip = c.clip;
+      sp.dataset.select = s.select ?? "";
+      sp.dataset.rerun = String(!!s.rerun);
+      sp.dataset.removed = String(s.removed === true);
+      sp.dataset.decided = String(isDecided(c.clip));
+      sp.dataset.options = String(c.options.length);
+      sp.dataset.visible = String(clips.includes(c));
+      box.appendChild(sp);
+    }
+    box.dataset.total = String(allClips.length);
+    box.dataset.visible = String(clips.length);
+    box.dataset.showPicked = String(showPicked);
+    box.dataset.decided = String(allClips.filter((c) => isDecided(c.clip)).length);
+  }
+
+  function preload(url) {
+    if (preloaded.has(url)) return;
+    const im = new Image(); im.decoding = "async"; im.src = url; preloaded.set(url, im);
+    if (preloaded.size > 120) preloaded.delete(preloaded.keys().next().value);
+  }
+  function preloadAround() {
+    for (const d of [1, -1, 2]) {
+      const c = clips[idx + d]; if (!c) continue;
+      preload(imgUrl(c.clip, c.original));
+      const a = afterOption(c); if (a) preload(imgUrl(c.clip, a.file));
+      if (d === 1) c.options.forEach((o) => preload(imgUrl(c.clip, o.file)));
+    }
+  }
+
+  // ---------- slider drag ----------
+  const stage = $("stage");
+  let dragging = false;
+  function posFromEvent(e) {
+    const r = stage.getBoundingClientRect();
+    return (e.clientX - r.left) / r.width;
+  }
+  stage.addEventListener("pointerdown", (e) => {
+    if (ui.mode !== "slider" || (e.pointerType === "mouse" && e.button !== 0)) return;
+    dragging = true; stage.setPointerCapture(e.pointerId); setPos(posFromEvent(e)); e.preventDefault();
+  });
+  stage.addEventListener("pointermove", (e) => { if (dragging) setPos(posFromEvent(e)); });
+  const endDrag = () => { if (dragging) { dragging = false; saveUI(); } };
+  stage.addEventListener("pointerup", endDrag);
+  stage.addEventListener("pointercancel", endDrag);
+  stage.addEventListener("click", () => { if (ui.mode === "toggle") { showBefore = !showBefore; render(); } });
+  // aspect ratio + max width from the natural image size
+  function fitStage() {
+    const a = $("img-after"), b = $("img-before");
+    const ref = a.naturalWidth ? a : b;
+    if (!ref.naturalWidth) return;
+    stage.style.aspectRatio = `${ref.naturalWidth} / ${ref.naturalHeight}`;
+    stage.style.maxWidth = ref.naturalWidth + "px";
+  }
+  $("img-after").addEventListener("load", fitStage);
+  $("img-before").addEventListener("load", fitStage);
+
+  // ---------- controls + keyboard shortcuts ----------
+  $("prev").onclick = () => goto(idx - 1);
+  $("next").onclick = () => goto(idx + 1);
+  $("jump").onchange = (e) => { goto(+e.target.value); e.target.blur(); };
+  $("show-picked").onclick = (e) => { setShowPicked(!showPicked); e.currentTarget.blur(); };
+  $("mode-slider").onclick = () => setMode("slider");
+  $("mode-toggle").onclick = () => setMode("toggle");
+  $("show-before").onclick = () => { showBefore = true; render(); };
+  $("show-after").onclick = () => { showBefore = false; render(); };
+  // use "click" (script-invoked .click() is untrusted here, unlike the derived "change")
+  $("rerun").addEventListener("click", (e) => {
+    if (!isUserAction(e)) { e.preventDefault(); return; }
+    setRerun(e.target.checked, e); e.target.blur();
+  });
+
+  $("remove").addEventListener("click", (e) => {
+    if (!isUserAction(e)) { e.preventDefault(); return; }
+    setRemoved(!isRemoved(cur().clip), e); e.currentTarget.blur();
+  });
+
+  window.addEventListener("keydown", (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const t = e.target;
+    if (t && (t.tagName === "SELECT" || (t.tagName === "INPUT" && t.type !== "checkbox") || t.tagName === "TEXTAREA")) return;
+    const k = e.key;
+    if ((k === "p" || k === "P") && !e.repeat) { setShowPicked(!showPicked); e.preventDefault(); return; }
+    if (!clips.length) return;
+    let handled = true;
+    if (k >= "0" && k <= "9") { if (!e.repeat) setSelect(k === "0" ? 10 : +k, e); }
+    else if (k === "r" || k === "R") { if (!e.repeat) setRerun(!stateOf(cur().clip).rerun, e); }
+    else if (k === "x" || k === "X") { if (!e.repeat) setRemoved(!isRemoved(cur().clip), e); }
+    else if (k === "ArrowLeft" || k === "ArrowRight") {
+      if (ui.mode === "slider") { setPos(ui.pos + (k === "ArrowLeft" ? -1 : 1) * (e.shiftKey ? 0.1 : 0.025)); saveUI(); }
+      else { showBefore = k === "ArrowLeft"; render(); }
+    }
+    else if (k === "ArrowUp" || k === "[") goto(idx - 1);
+    else if (k === "ArrowDown" || k === "]") goto(idx + 1);
+    else if (k === "m" || k === "M") setMode(ui.mode === "slider" ? "toggle" : "slider");
+    else if (k === "n" || k === "N") nextUndecided();
+    else if (k === "Home") goto(0);
+    else if (k === "End") goto(clips.length - 1);
+    else handled = false;
+    if (handled) e.preventDefault();
+  });
+
+  // ---------- boot / refresh (clip list re-polled every 30 s; picks up new generations) ----------
+  async function refreshClips(initial) {
+    let j;
+    try { j = await loadClips(); } catch { return; }
+    const curName = clips[idx] && clips[idx].clip;
+    const sig = (arr) => arr.map((c) => c.clip + ":" + c.options.length).join(",");
+    const changed = sig(j.clips) !== sig(allClips) || j.waiting.length !== waiting.length;
+    allClips = j.clips; waiting = j.waiting;
+    if (Array.isArray(j.round_start_hidden)) hiddenSet = new Set(j.round_start_hidden);
+    else if (!hiddenSet) hiddenSet = new Set(allClips.filter((c) => !needsDecision(c.clip)).map((c) => c.clip)); // no snapshot: freeze at load
+    if (initial) {
+      const want = decodeURIComponent(location.hash.slice(1)) || ui.lastClip;
+      refilter(want);
+      if (clips.length) goto(idx); else render(true);
+    } else if (changed) {           // round's clip set changed on the server (not navigation)
+      refilter(curName);
+      if (clips.length && cur().clip !== curName) goto(idx); else render(true);
+    }
+  }
+
+  async function boot() {
+    setPos(ui.pos);
+    const server = await loadSelects();
+    selects = (server && typeof server === "object") ? server : {};
+    // Never auto-POST on load. Unsynced edits from an earlier session are parked
+    // (not applied, not sent) so opening the page can't change selects.json.
+    const stale = readLS(LS_PENDING, {});
+    if (Object.keys(stale).length) {
+      writeLS(LS_PENDING + ".stale." + Date.now(), stale);
+      writeLS(LS_PENDING, {});
+    }
+    writeLS(LS_BACKUP, selects);
+    await refreshClips(true);
+    setSaved("", Object.keys(stale).length ? "Loaded (old unsynced edits parked, not sent)" : "Loaded");
+    setInterval(() => refreshClips(false), 30000);
+    window.addEventListener("hashchange", () => {
+      const i = clips.findIndex((c) => c.clip === decodeURIComponent(location.hash.slice(1)));
+      if (i >= 0 && i !== idx) goto(i);
+    });
+  }
+  boot();
+})();
+</script>
+</body>
+</html>

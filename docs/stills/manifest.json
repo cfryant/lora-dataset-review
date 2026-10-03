@@ -1,0 +1,150 @@
+{
+ "app": "stills",
+ "clips": [
+  {
+   "clip": "demo_001",
+   "original": "demo_001_original.png",
+   "options": [
+    {
+     "n": 1,
+     "file": "demo_001_s01.png"
+    },
+    {
+     "n": 2,
+     "file": "demo_001_s02.png"
+    },
+    {
+     "n": 3,
+     "file": "demo_001_s03.png"
+    },
+    {
+     "n": 4,
+     "file": "demo_001_s04.png"
+    }
+   ]
+  },
+  {
+   "clip": "demo_002",
+   "original": "demo_002_original.png",
+   "options": [
+    {
+     "n": 1,
+     "file": "demo_002_s01.png"
+    },
+    {
+     "n": 2,
+     "file": "demo_002_s02.png"
+    },
+    {
+     "n": 3,
+     "file": "demo_002_s03.png"
+    },
+    {
+     "n": 4,
+     "file": "demo_002_s04.png"
+    }
+   ]
+  },
+  {
+   "clip": "demo_003",
+   "original": "demo_003_original.png",
+   "options": [
+    {
+     "n": 1,
+     "file": "demo_003_s01.png"
+    },
+    {
+     "n": 2,
+     "file": "demo_003_s02.png"
+    },
+    {
+     "n": 3,
+     "file": "demo_003_s03.png"
+    },
+    {
+     "n": 4,
+     "file": "demo_003_s04.png"
+    },
+    {
+     "n": 5,
+     "file": "demo_003_s05.png"
+    },
+    {
+     "n": 6,
+     "file": "demo_003_s06.png"
+    }
+   ]
+  },
+  {
+   "clip": "demo_004",
+   "original": "demo_004_original.png",
+   "options": [
+    {
+     "n": 1,
+     "file": "demo_004_s01.png"
+    },
+    {
+     "n": 2,
+     "file": "demo_004_s02.png"
+    },
+    {
+     "n": 3,
+     "file": "demo_004_s03.png"
+    }
+   ]
+  },
+  {
+   "clip": "demo_005",
+   "original": "demo_005_original.png",
+   "options": [
+    {
+     "n": 1,
+     "file": "demo_005_s01.png"
+    },
+    {
+     "n": 2,
+     "file": "demo_005_s02.png"
+    },
+    {
+     "n": 3,
+     "file": "demo_005_s03.png"
+    },
+    {
+     "n": 4,
+     "file": "demo_005_s04.png"
+    }
+   ]
+  }
+ ],
+ "waiting": [
+  "demo_006"
+ ],
+ "round": {
+  "round": "demo-round-2",
+  "clips": [
+   "demo_001",
+   "demo_002",
+   "demo_003",
+   "demo_004",
+   "demo_005",
+   "demo_006"
+  ],
+  "round_start_hidden": [
+   "demo_001",
+   "demo_005"
+  ]
+ },
+ "seed_selects": {
+  "demo_001": {
+   "rerun": false,
+   "select": 2,
+   "updated": "2026-01-01T12:00:00+00:00"
+  },
+  "demo_005": {
+   "removed": true,
+   "rerun": false,
+   "select": null,
+   "updated": "2026-01-01T12:00:00+00:00"
+  }
+ }
+}

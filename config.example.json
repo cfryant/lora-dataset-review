@@ -1,0 +1,20 @@
+{
+  "_comment": "Copy to config.json (gitignored) and pass --config config.json to either server. CLI flags and env vars override these values. Paths may be absolute or ~-relative; Windows paths need escaped backslashes or forward slashes.",
+  "stills_review": {
+    "stills": "~/lora_project/stills",
+    "round": null,
+    "host": "127.0.0.1",
+    "port": 8765
+  },
+  "video_review": {
+    "out": "~/lora_project/video_out",
+    "stills": "~/lora_project/stills",
+    "targets": null,
+    "sources": null,
+    "selects": null,
+    "chosen_stills": null,
+    "clip_id_regex": "^([A-Za-z][A-Za-z0-9]*_\\d{3})",
+    "host": "127.0.0.1",
+    "port": 8766
+  }
+}

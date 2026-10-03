@@ -1,0 +1,15 @@
+{
+  "round": "demo-round-2",
+  "clips": [
+    "demo_001",
+    "demo_002",
+    "demo_003",
+    "demo_004",
+    "demo_005",
+    "demo_006"
+  ],
+  "round_start_hidden": [
+    "demo_001",
+    "demo_005"
+  ]
+}

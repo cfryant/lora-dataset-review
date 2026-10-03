@@ -1,0 +1,113 @@
+{
+ "app": "video",
+ "clips": [
+  {
+   "clip": "demo_001",
+   "target": {
+    "file": "demo_001.mp4",
+    "size": 8868,
+    "mtime": 1767225600,
+    "info": {
+     "fps": 24.0,
+     "frames": 48,
+     "duration": 2.0
+    }
+   },
+   "source": {
+    "file": "demo_001_src.mp4",
+    "size": 8830,
+    "mtime": 1767225600,
+    "info": {
+     "fps": 24.0,
+     "frames": 48,
+     "duration": 2.0
+    }
+   },
+   "short": "demo_001",
+   "still": {
+    "n": 2,
+    "file": "demo_001_s02.png"
+   }
+  },
+  {
+   "clip": "demo_002",
+   "target": {
+    "file": "demo_002.mp4",
+    "size": 8912,
+    "mtime": 1767225600,
+    "info": {
+     "fps": 24.0,
+     "frames": 48,
+     "duration": 2.0
+    }
+   },
+   "source": {
+    "file": "demo_002_src.mp4",
+    "size": 8804,
+    "mtime": 1767225600,
+    "info": {
+     "fps": 24.0,
+     "frames": 48,
+     "duration": 2.0
+    }
+   },
+   "short": "demo_002",
+   "still": {
+    "n": 3,
+    "file": "demo_002_s03.png"
+   }
+  },
+  {
+   "clip": "demo_004",
+   "target": {
+    "file": "demo_004.mp4",
+    "size": 8898,
+    "mtime": 1767225600,
+    "info": {
+     "fps": 24.0,
+     "frames": 48,
+     "duration": 2.0
+    }
+   },
+   "source": {
+    "file": "demo_004_src.mp4",
+    "size": 8597,
+    "mtime": 1767225600,
+    "info": {
+     "fps": 24.0,
+     "frames": 48,
+     "duration": 2.0
+    }
+   },
+   "short": "demo_004",
+   "still": {
+    "n": 1,
+    "file": "demo_004_s01.png"
+   }
+  }
+ ],
+ "incomplete": [
+  {
+   "clip": "demo_003",
+   "target": {
+    "file": "demo_003.mp4",
+    "size": 9141,
+    "mtime": 1767225600,
+    "info": {
+     "fps": 24.0,
+     "frames": 48,
+     "duration": 2.0
+    }
+   },
+   "short": "demo_003",
+   "still": null
+  }
+ ],
+ "seed_selects": {
+  "demo_002": {
+   "status": "approved",
+   "note": "seeded demo decision",
+   "updated": "2026-01-02T12:00:00Z"
+  }
+ }
+}

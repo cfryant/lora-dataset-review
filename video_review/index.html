@@ -1,0 +1,229 @@
+<!doctype html>
+<!--
+  Before/after video review UI  (served by video_review/server.py at http://127.0.0.1:8766/)
+  ========================================================================================
+  WHAT: single-file page (no build step, no external assets). Plays the SOURCE clip and the
+        generated TARGET clip in lock-step (source is the master clock; the target is nudged via
+        playbackRate / currentTime to stay within ~1 frame). Modes: 1 side-by-side, 2 wipe
+        (drag the divider), 3 toggle (Left/Right flips). Shows the chosen still and fps/frame
+        counts, and warns when source and target frame counts differ.
+  WHEN: stage 2 of a LoRA dataset review: approve which (source -> target) pairs enter training.
+  INPUT:  GET /api/clips, GET /api/selects, GET /api/review_round (once per page load).
+  OUTPUT: POST /api/selects {clip, status: "approved"|"reject"|null, note}
+          -> server writes video_selects.json {"<id>": {"status","note","updated"}}
+  KEYS:   Space play/pause | , . frame step | 1 2 3 mode | Left/Right flip source/target |
+          Up/Down or [ ] prev/next clip | N next undecided | P show all / hide already-decided
+  RULES baked into the JS (keep them if you edit this file):
+    * Decisions are saved ONLY when Approve / Reject / Clear / Save note is clicked.
+    * The hidden list (clips already decided for their current render) is fixed at page load;
+      clips decided during the session stay visible until reload.
+    * A decision older than the target file's mtime is "stale" (clip re-rendered) = undecided.
+    * localStorage keeps a backup copy of decisions in case the server is unreachable.
+  URLS:   all requests are RELATIVE (api/..., media/..., still/...) so the page also works behind a
+          sub-path and in the static GitHub Pages demo (docs/video/, built by tools/build_pages.py),
+          where the DEMO-ONLY docs/assets/demo-shim.js answers api/* from localStorage.
+  HAND-OFF: give the user the URL + keys; afterwards read video_selects.json / run
+            tools/export_approved.py to collect approved pairs.
+-->
+<html lang="en"><head><meta charset="utf-8"><link rel="icon" href="data:,">
+<title>Video review (source vs generated)</title>
+<style>
+:root{--bg:#111;--fg:#ddd;--mut:#888;--acc:#4aa3ff;--ok:#3c3;--bad:#e44;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.4 system-ui,Segoe UI,sans-serif}
+header{display:flex;gap:12px;align-items:center;padding:8px 12px;background:#1a1a1a;border-bottom:1px solid #333;flex-wrap:wrap}
+header h1{font-size:15px;margin:0 8px 0 0}
+#video-summary{display:flex;flex-wrap:wrap;gap:4px}
+#video-summary span{cursor:pointer;padding:2px 6px;border-radius:4px;background:#2a2a2a;font-size:12px;border:1px solid #333}
+#video-summary span[data-status=approved]{background:#1e4d1e;border-color:var(--ok)}
+#video-summary span[data-status=reject]{background:#5a1c1c;border-color:var(--bad)}
+#video-summary span.cur{outline:2px solid var(--acc)}
+#video-summary span.hid{opacity:.45;border-style:dashed}
+#filt{color:var(--acc);font-size:12px}
+main{max-width:1320px;margin:0 auto;padding:10px 20px}
+#titlebar{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+#clipname{font-size:17px;font-weight:600}
+#modes button,.btn{background:#2a2a2a;color:var(--fg);border:1px solid #444;border-radius:5px;padding:5px 10px;cursor:pointer;font:inherit}
+#modes button.on{background:var(--acc);color:#000;border-color:var(--acc)}
+#stage{position:relative;max-width:1280px;margin:8px auto;background:#000;user-select:none}
+#stage video{display:block;width:100%;background:#000}
+#stage .lbl{position:absolute;top:6px;padding:2px 7px;background:rgba(0,0,0,.65);font-size:12px;border-radius:3px;pointer-events:none;z-index:5}
+/* side-by-side */
+#stage.sbs{display:flex;gap:4px}
+#stage.sbs .pane{flex:1;position:relative}
+#stage.sbs .lbl{left:6px}
+/* wipe + toggle: stacked */
+#stage.wipe .pane,#stage.toggle .pane{position:relative}
+#stage.wipe #paneA,#stage.toggle #paneA{position:absolute;inset:0}
+#stage.wipe #paneA{clip-path:inset(0 0 0 var(--wipe,50%))}
+#stage.wipe #lblS{left:6px}#stage.wipe #lblA{right:6px;left:auto}
+#divider{display:none;position:absolute;top:0;bottom:0;left:var(--wipe,50%);width:3px;margin-left:-1px;background:#fff;cursor:ew-resize;z-index:6}
+#divider::after{content:"\2194";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;color:#000;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:15px}
+#stage.wipe #divider{display:block}
+#stage.toggle #paneA{visibility:hidden}
+#stage.toggle.showA #paneA{visibility:visible}
+#stage.toggle .lbl{left:6px}
+#stage.toggle #lblA{visibility:hidden}#stage.toggle.showA #lblA{visibility:visible}#stage.toggle.showA #lblS{visibility:hidden}
+#controls{max-width:1280px;margin:0 auto;display:flex;gap:8px;align-items:center}
+#scrub{flex:1}
+#tc{font-variant-numeric:tabular-nums;min-width:170px;text-align:right;color:var(--mut)}
+#lower{max-width:1280px;margin:12px auto;display:flex;gap:16px;align-items:flex-start}
+#still{width:256px;border:1px solid #333;cursor:zoom-in}
+#stillbox .cap{color:var(--mut);font-size:12px}
+#decide{flex:1}
+#note{width:100%;height:70px;background:#1b1b1b;color:var(--fg);border:1px solid #444;border-radius:5px;padding:6px;font:inherit}
+#approve{border-color:var(--ok)}#reject{border-color:var(--bad)}
+#approve.on{background:var(--ok);color:#000}#reject.on{background:var(--bad);color:#000}
+#status{margin-left:8px;color:var(--mut)}
+#help{color:var(--mut);font-size:12px;margin-top:8px}
+#msg{position:fixed;bottom:12px;right:12px;background:#333;padding:8px 12px;border-radius:6px;display:none}
+#zoom{position:fixed;inset:0;background:rgba(0,0,0,.9);display:none;align-items:center;justify-content:center;z-index:50;cursor:zoom-out}
+#zoom img{max-width:95vw;max-height:95vh}
+kbd{background:#2a2a2a;border:1px solid #444;border-radius:3px;padding:0 4px}
+</style></head>
+<body>
+<header><h1>Video review</h1><div id="video-summary"></div><span id="counts" style="color:var(--mut)"></span><span id="filt"></span></header>
+<main>
+<div id="empty" style="display:none;padding:40px;color:var(--mut)">No complete pairs yet (need pairs/&lt;stem&gt;_src.mp4 + targets/&lt;stem&gt;.mp4). Polling every 30 s…</div>
+<div id="alldone" style="display:none;padding:40px;color:var(--mut)">No undecided clips in this session's list. Press <kbd>P</kbd> to show all clips (or reload to start a new round).</div>
+<div id="app" style="display:none">
+ <div id="titlebar"><div><span id="clipname"></span> <span id="clipinfo" style="color:var(--mut)"></span></div>
+  <div id="modes"><button data-m="sbs">1 Side-by-side</button> <button data-m="wipe">2 Wipe</button> <button data-m="toggle">3 Toggle</button></div></div>
+ <div id="stage" class="sbs">
+  <div class="pane" id="paneS"><video id="vS" muted playsinline preload="auto" loop></video><span class="lbl" id="lblS">SOURCE</span></div>
+  <div class="pane" id="paneA"><video id="vA" muted playsinline preload="auto" loop></video><span class="lbl" id="lblA">GENERATED</span></div>
+  <div id="divider"></div>
+ </div>
+ <div id="controls"><button class="btn" id="pp">Play</button><button class="btn" id="fb">&lsaquo; frame</button><button class="btn" id="ff">frame &rsaquo;</button>
+  <input type="range" id="scrub" min="0" max="1000" step="1" value="0"><span id="tc"></span></div>
+ <div id="lower">
+  <div id="stillbox"><img id="still" alt="chosen still"><div class="cap" id="stillcap"></div></div>
+  <div id="decide">
+   <div><button class="btn" id="approve">Approve</button> <button class="btn" id="reject">Reject (re-render)</button> <button class="btn" id="clear">Clear</button> <button class="btn" id="savenote">Save note</button><span id="status"></span></div>
+   <textarea id="note" placeholder="Notes for this clip (saved only when you click a button)"></textarea>
+   <div id="help"><kbd>Space</kbd> play/pause · <kbd>,</kbd> <kbd>.</kbd> frame step · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> mode · <kbd>&larr;</kbd><kbd>&rarr;</kbd> flip source/generated (toggle mode) · <kbd>&uarr;</kbd><kbd>&darr;</kbd> or <kbd>[</kbd><kbd>]</kbd> prev/next clip · <kbd>N</kbd> next undecided · <kbd>P</kbd> show all / hide already-decided (hidden list is fixed at page load; reload to refresh). Decisions are saved only when you click Approve / Reject / Clear / Save note.</div>
+  </div>
+ </div>
+</div>
+</main>
+<div id="msg"></div><div id="zoom"><img id="zoomimg"></div>
+<script>
+// ---- state + data loading ----
+let FPS=30; const LS_KEY='video_review.selects_backup_v1';
+let clips=[], allClips=[], hiddenSet=null, showAll=false, sel={}, idx=0, mode=new URLSearchParams(location.search).get('mode')||localStorage.getItem('video_review.mode')||'sbs', showA=false, curKey=null;
+const $=id=>document.getElementById(id), vS=$('vS'), vA=$('vA'), stage=$('stage');
+function toast(t,bad){const m=$('msg');m.textContent=t;m.style.background=bad?'#7a1e1e':'#333';m.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>m.style.display='none',bad?6000:1800);}
+function backup(){try{localStorage.setItem(LS_KEY,JSON.stringify({saved:new Date().toISOString(),selects:sel}));}catch(e){}}
+async function loadSelects(){try{const r=await fetch('api/selects',{cache:'no-store'});sel=await r.json();backup();}catch(e){const b=JSON.parse(localStorage.getItem(LS_KEY)||'{}');sel=b.selects||{};toast('Server selects unavailable; showing localStorage backup',true);}}
+// Round snapshot: the set of hidden (already decided) clips is taken ONCE at page load and never recomputed
+// during the session, so clips decided now stay visible until the page is reloaded.
+async function loadRound(){try{const j=await (await fetch('api/review_round',{cache:'no-store'})).json();if(Array.isArray(j.hidden))hiddenSet=new Set(j.hidden);}catch(e){}}
+function isStale(c){const e=sel[c.short]||{};if(!e.status||!e.updated)return false;const t=Date.parse(e.updated);return !isNaN(t)&&t<c.target.mtime*1000;}
+async function loadClips(){
+  let d; try{d=await (await fetch('api/clips',{cache:'no-store'})).json();}catch(e){return;}
+  allClips=d.clips||[];
+  if(hiddenSet===null) hiddenSet=new Set(allClips.filter(c=>st(c)).map(c=>c.short)); // fallback if /api/review_round failed
+  applyFilter();
+}
+function applyFilter(){
+  const keep=clips[idx]&&clips[idx].clip;
+  clips=showAll?allClips:allClips.filter(c=>!hiddenSet.has(c.short));
+  $('empty').style.display=allClips.length?'none':'block';
+  $('alldone').style.display=(allClips.length&&!clips.length)?'block':'none';
+  $('app').style.display=clips.length?'block':'none';
+  let ni=clips.findIndex(c=>c.clip===keep); if(ni<0) ni=Math.min(idx,Math.max(0,clips.length-1)); idx=ni;
+  renderSummary(); if(clips.length) show(false);
+}
+function toggleShowAll(){showAll=!showAll;applyFilter();toast(showAll?`Showing ALL ${allClips.length} clips (P to hide decided)`:`Showing ${clips.length} undecided-at-load clips (P to show all)`);}
+// status for THIS render: a decision saved before the current target render is treated as undecided
+function st(c){const e=sel[c.short]||{};if(!e.status||isStale(c))return null;return e.status;}
+// ---- header chip strip + counts (view only) ----
+function renderSummary(){
+  const s=$('video-summary'); s.innerHTML='';
+  clips.forEach((c,i)=>{const e=document.createElement('span');e.textContent=c.short.replace(/^.*_/,'');e.title=c.clip;e.dataset.clip=c.short;e.dataset.status=st(c)||'undecided';if(i===idx)e.classList.add('cur');if(hiddenSet&&hiddenSet.has(c.short))e.classList.add('hid');e.onclick=()=>{idx=i;show(true);};s.appendChild(e);});
+  const a=clips.filter(c=>st(c)==='approved').length, r=clips.filter(c=>st(c)==='reject').length;
+  $('counts').textContent=`${clips.length} clips · ${a} approved · ${r} reject · ${clips.length-a-r} undecided`;
+  const nh=hiddenSet?allClips.filter(c=>hiddenSet.has(c.short)).length:0;
+  $('filt').textContent=showAll?`showing all ${allClips.length} (P: hide the ${nh} decided at load)`:`${nh} already-decided hidden · P show all`;
+}
+function show(userNav){
+  const c=clips[idx]; if(!c) return;
+  const key=c.clip+'|'+c.target.mtime+'|'+c.source.mtime;
+  document.querySelectorAll('#video-summary span').forEach((e,i)=>e.classList.toggle('cur',i===idx));
+  if(key!==curKey){
+    curKey=key; const was=!vS.paused;
+    vS.src=`media/pairs/${encodeURIComponent(c.source.file)}?v=${c.source.mtime}`;
+    vA.src=`media/targets/${encodeURIComponent(c.target.file)}?v=${c.target.mtime}`;
+    FPS=(c.source.info&&c.source.info.fps)||(c.target.info&&c.target.info.fps)||30;
+    $('clipname').textContent=c.clip;
+    const si=c.source.info||{},ti=c.target.info||{};$('clipinfo').textContent=`${FPS} fps · src ${si.frames??'?'} f / generated ${ti.frames??'?'} f${si.frames!==ti.frames?' ⚠ frame count mismatch':''} · target ${new Date(c.target.mtime*1000).toLocaleString()}`;
+    if(c.still){$('still').src=`still/${c.short}/${c.still.file}`;$('stillcap').textContent=`chosen still s${String(c.still.n).padStart(2,'0')}`;$('still').style.display='';}
+    else{$('still').removeAttribute('src');$('still').style.display='none';$('stillcap').textContent='chosen still: unknown';}
+    const e=sel[c.short]||{}; $('note').value=e.note||''; renderDecision();
+    if(was)vS.addEventListener('loadeddata',()=>play(),{once:true});
+  }
+  renderDecision();
+}
+function renderDecision(){const c=clips[idx];if(!c)return;const e=sel[c.short]||{},s=st(c);$('approve').classList.toggle('on',s==='approved');$('reject').classList.toggle('on',s==='reject');$('status').textContent=isStale(c)?`undecided for this render (old decision on the previous render: ${e.status} · ${e.updated})`:(e.updated?`saved ${e.status||'(cleared)'} · ${e.updated}`:'undecided (not saved)');}
+// ---- the ONLY write path: called from the Approve / Reject / Clear / Save note buttons ----
+async function save(status){
+  const c=clips[idx]; if(!c) return; const body={clip:c.short,status,note:$('note').value};
+  sel[c.short]={status,note:body.note,updated:new Date().toISOString(),pending:true}; backup();
+  try{const r=await fetch('api/selects',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.error||r.status);sel[c.short]=j.entry;backup();toast(`${c.short}: ${status||'cleared'} saved`);}
+  catch(e){toast('SAVE FAILED (kept in localStorage backup): '+e.message,true);}
+  renderSummary(); renderDecision();
+}
+// ---- playback sync (source = master) ----
+function play(){const p=[vS.play()];vA.currentTime=vS.currentTime;p.push(vA.play());Promise.all(p).catch(()=>{});$('pp').textContent='Pause';}
+function pause(){vS.pause();vA.pause();vA.currentTime=vS.currentTime;$('pp').textContent='Play';}
+function toggle(){vS.paused?play():pause();}
+function seek(t){const d=vS.duration||0;t=Math.max(0,Math.min(t,d?d-0.001:0));vS.currentTime=t;vA.currentTime=t;}
+function step(n){pause();const f=Math.round(vS.currentTime*FPS)+n;seek((f+0.5)/FPS);} // mid-frame to avoid rounding onto neighbour
+let scrubbing=false;
+$('scrub').addEventListener('input',e=>{scrubbing=true;seek((e.target.value/1000)*(vS.duration||0));});
+$('scrub').addEventListener('change',()=>scrubbing=false);
+function tick(){
+  if(!vS.paused&&!vA.paused){const dt=vA.currentTime-vS.currentTime;if(Math.abs(dt)>0.05&&Math.abs(dt)<(vS.duration||99)-0.2)vA.currentTime=vS.currentTime;else if(Math.abs(dt)>0.012)vA.playbackRate=dt>0?0.97:1.03;else vA.playbackRate=1;}
+  if(!vS.paused&&vA.paused&&vA.readyState>=2)vA.play().catch(()=>{});
+  const d=vS.duration||0, t=vS.currentTime; if(!scrubbing&&d)$('scrub').value=Math.round(t/d*1000);
+  $('tc').textContent=`frame ${Math.floor(t*FPS+1e-6)+1} / ${Math.round(d*FPS)}  ·  ${t.toFixed(2)}s`;
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+vS.addEventListener('seeking',()=>{if(Math.abs(vA.currentTime-vS.currentTime)>0.02)vA.currentTime=vS.currentTime;});
+// ---- modes ----
+function setMode(m){mode=m;localStorage.setItem('video_review.mode',m);stage.className=m+(showA?' showA':'');document.querySelectorAll('#modes button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));}
+document.querySelectorAll('#modes button').forEach(b=>b.onclick=()=>setMode(b.dataset.m));
+function flip(v){showA=(v===undefined)?!showA:v;setMode(mode);}
+// wipe divider drag
+let drag=false;
+function setWipe(x){const r=stage.getBoundingClientRect();const p=Math.max(0,Math.min(100,(x-r.left)/r.width*100));stage.style.setProperty('--wipe',p+'%');}
+$('divider').addEventListener('pointerdown',e=>{drag=true;$('divider').setPointerCapture(e.pointerId);});
+$('divider').addEventListener('pointermove',e=>{if(drag)setWipe(e.clientX);});
+$('divider').addEventListener('pointerup',()=>drag=false);
+stage.addEventListener('pointerdown',e=>{if(mode==='wipe'&&e.target!==$('divider')){setWipe(e.clientX);drag=true;stage.setPointerCapture(e.pointerId);}});
+stage.addEventListener('pointermove',e=>{if(drag&&mode==='wipe')setWipe(e.clientX);});
+stage.addEventListener('pointerup',()=>drag=false);
+// ---- nav ----
+function go(n){if(!clips.length)return;idx=(idx+n+clips.length)%clips.length;show(true);}
+function nextUndecided(){for(let k=1;k<=clips.length;k++){const i=(idx+k)%clips.length;if(!st(clips[i])){idx=i;show(true);return;}}toast('No undecided clips');}
+$('pp').onclick=toggle;$('fb').onclick=()=>step(-1);$('ff').onclick=()=>step(1);
+$('approve').onclick=()=>save('approved');$('reject').onclick=()=>save('reject');$('clear').onclick=()=>save(null);
+$('savenote').onclick=()=>{const c=clips[idx];save((sel[c.short]||{}).status||null);};
+$('still').onclick=()=>{$('zoomimg').src=$('still').src;$('zoom').style.display='flex';};$('zoom').onclick=()=>$('zoom').style.display='none';
+// ---- keyboard shortcuts (ignored while typing in the note box) ----
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='TEXTAREA'||e.target.tagName==='INPUT'&&e.target.type!=='range'||e.ctrlKey||e.metaKey||e.altKey)return;
+  const k=e.key;
+  if(k===' '){e.preventDefault();toggle();}
+  else if(k===','){e.preventDefault();step(-1);}else if(k==='.'){e.preventDefault();step(1);}
+  else if(k==='ArrowLeft'||k==='ArrowRight'){e.preventDefault();if(mode!=='toggle')setMode('toggle');flip();}
+  else if(k==='ArrowUp'||k==='['){e.preventDefault();go(-1);}else if(k==='ArrowDown'||k===']'){e.preventDefault();go(1);}
+  else if(k==='n'||k==='N'){e.preventDefault();nextUndecided();}
+  else if(k==='p'||k==='P'){e.preventDefault();toggleShowAll();}
+  else if(k==='1')setMode('sbs');else if(k==='2')setMode('wipe');else if(k==='3')setMode('toggle');
+});
+setMode(mode);
+loadSelects().then(loadRound).then(loadClips); setInterval(loadClips,30000);
+</script>
+</body></html>

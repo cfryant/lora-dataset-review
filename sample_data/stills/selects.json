@@ -1,0 +1,13 @@
+{
+  "demo_001": {
+    "rerun": false,
+    "select": 2,
+    "updated": "2026-01-01T12:00:00+00:00"
+  },
+  "demo_005": {
+    "removed": true,
+    "rerun": false,
+    "select": null,
+    "updated": "2026-01-01T12:00:00+00:00"
+  }
+}
