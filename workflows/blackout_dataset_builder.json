@@ -1,0 +1,2402 @@
+{
+  "id": "c3f79ff9-638f-4b65-b888-f990e4cdb85c",
+  "revision": 0,
+  "last_node_id": 53,
+  "last_link_id": 52,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "LTXBlackoutLoadClip",
+      "pos": [
+        40,
+        120
+      ],
+      "size": [
+        380,
+        110
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "links": [
+            1
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "clipname",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 1
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "links": [
+            3
+          ],
+          "slot_index": 2
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LTXBlackoutLoadClip"
+      },
+      "widgets_values": [
+        "CLIP_001.mp4"
+      ],
+      "title": "1. Source clip (pick from dropdown)"
+    },
+    {
+      "id": 2,
+      "type": "LTXBlackoutModeSwitch",
+      "pos": [
+        40,
+        290
+      ],
+      "size": [
+        380,
+        220
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 1
+        },
+        {
+          "name": "chosen_still",
+          "type": "IMAGE",
+          "link": null,
+          "shape": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "stills_video",
+          "type": "VIDEO",
+          "links": [
+            4
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "video_video",
+          "type": "VIDEO",
+          "links": [
+            32
+          ],
+          "slot_index": 1
+        },
+        {
+          "name": "video_chosen_still",
+          "type": "IMAGE",
+          "links": [
+            34,
+            44,
+            52
+          ],
+          "slot_index": 2
+        },
+        {
+          "name": "clipname",
+          "type": "STRING",
+          "links": [
+            14,
+            22,
+            30,
+            40,
+            49
+          ],
+          "slot_index": 3
+        },
+        {
+          "name": "mode_is_stills",
+          "type": "BOOLEAN",
+          "links": [],
+          "slot_index": 4
+        },
+        {
+          "name": "switch_info",
+          "type": "STRING",
+          "links": [
+            2
+          ],
+          "slot_index": 5
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LTXBlackoutModeSwitch"
+      },
+      "widgets_values": [
+        false,
+        4,
+        "",
+        "blackout/stills"
+      ],
+      "title": "2. MODE SWITCH  (true = A: first-frame preview only / false = B: video)",
+      "color": "#665522",
+      "bgcolor": "#443a18"
+    },
+    {
+      "id": 3,
+      "type": "PreviewAny",
+      "pos": [
+        40,
+        560
+      ],
+      "size": [
+        380,
+        200
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [],
+      "title": "switch info"
+    },
+    {
+      "id": 4,
+      "type": "PreviewAny",
+      "pos": [
+        40,
+        800
+      ],
+      "size": [
+        380,
+        110
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 3
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [],
+      "title": "clip info"
+    },
+    {
+      "id": 10,
+      "type": "LTXVideoFirstFrame",
+      "pos": [
+        520,
+        120
+      ],
+      "size": [
+        300,
+        170
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 4
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            9,
+            17,
+            25,
+            51
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "width",
+          "type": "INT",
+          "links": [
+            5,
+            11,
+            19,
+            27
+          ],
+          "slot_index": 1
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "links": [
+            6,
+            12,
+            20,
+            28
+          ],
+          "slot_index": 2
+        },
+        {
+          "name": "fps",
+          "type": "FLOAT",
+          "links": [],
+          "slot_index": 3
+        },
+        {
+          "name": "source_frames",
+          "type": "INT",
+          "links": [],
+          "slot_index": 4
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 5
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LTXVideoFirstFrame"
+      },
+      "widgets_values": [],
+      "title": "A1. First frame (same frame uploaded to Magnific)",
+      "color": "#2a4a2a",
+      "bgcolor": "#1f331f"
+    },
+    {
+      "id": 11,
+      "type": "LTXBlackoutStillArgs",
+      "pos": [
+        1480,
+        120
+      ],
+      "size": [
+        420,
+        480
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "width",
+          "type": "INT",
+          "widget": {
+            "name": "width"
+          },
+          "link": 5
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "widget": {
+            "name": "height"
+          },
+          "link": 6
+        }
+      ],
+      "outputs": [
+        {
+          "name": "args_call_1",
+          "type": "STRING",
+          "links": [
+            8
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "args_call_2",
+          "type": "STRING",
+          "links": [
+            16
+          ],
+          "slot_index": 1
+        },
+        {
+          "name": "args_call_3",
+          "type": "STRING",
+          "links": [
+            24
+          ],
+          "slot_index": 2
+        },
+        {
+          "name": "summary",
+          "type": "STRING",
+          "links": [
+            7
+          ],
+          "slot_index": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LTXBlackoutStillArgs"
+      },
+      "widgets_values": [
+        1280,
+        720,
+        "Relight this exact photograph as a total blackout. Every light source is switched OFF: ceiling lights, lamps, pendants, practical fixtures, neon and signage, TVs, monitors and phone screens, candles, car headlights and street lights. Windows and glass show no daylight, no glow and no reflections of lit surroundings; there is no ambient fill or sky light. The scene falls into near-total darkness with deep, crushed blacks. The ONLY light is a single off-camera flashlight beam coming in from one side of the frame, a narrow cool-white cone that lights a small patch of the scene with a hard hot-spot and soft falloff, with subtle volumetric dust and haze visible inside the beam. Everything outside the beam is almost black, with only faint shapes. Keep the exact same composition, camera framing, lens and perspective, room geometry, furniture, people, faces, poses, clothing and props, pixel-aligned with the original. Do not add, remove or move any object or person; do not show the flashlight or who holds it. Photorealistic low-light photo with natural sensor noise, no text, no watermark.",
+        10,
+        "auto_from_source",
+        "auto_from_source",
+        "png",
+        "4"
+      ],
+      "title": "FB-A2. Still args (10 options = 4+4+2)",
+      "color": "#2a4a2a",
+      "bgcolor": "#1f331f"
+    },
+    {
+      "id": 12,
+      "type": "PreviewAny",
+      "pos": [
+        1480,
+        640
+      ],
+      "size": [
+        420,
+        260
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [],
+      "title": "FB-A: request summary / cost"
+    },
+    {
+      "id": 13,
+      "type": "LTXFalMappedEndpointWithStatus",
+      "pos": [
+        1940,
+        120
+      ],
+      "size": [
+        400,
+        300
+      ],
+      "flags": {},
+      "order": 13,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 9,
+          "shape": 7
+        },
+        {
+          "name": "image_2",
+          "type": "IMAGE",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "arguments_json",
+          "type": "STRING",
+          "widget": {
+            "name": "arguments_json"
+          },
+          "link": 8
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "links": [],
+          "slot_index": 0
+        },
+        {
+          "name": "status",
+          "type": "STRING",
+          "links": [
+            15
+          ],
+          "slot_index": 1
+        },
+        {
+          "name": "video_url",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 2
+        },
+        {
+          "name": "result_json",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 3
+        },
+        {
+          "name": "ok",
+          "type": "BOOLEAN",
+          "links": [],
+          "slot_index": 4
+        },
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": [
+            10
+          ],
+          "slot_index": 5
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": [],
+          "slot_index": 6
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LTXFalMappedEndpointWithStatus"
+      },
+      "widgets_values": [
+        "fal-ai/nano-banana-pro/edit",
+        "{}",
+        11,
+        "fixed",
+        false,
+        true,
+        "blackout/fal_status_log.txt",
+        "auto",
+        "images"
+      ],
+      "title": "FB-A3.1 Nano Banana Pro (fal) call 1",
+      "color": "#2a4a2a",
+      "bgcolor": "#1f331f"
+    },
+    {
+      "id": 14,
+      "type": "LTXMatchImageSize",
+      "pos": [
+        2380,
+        120
+      ],
+      "size": [
+        260,
+        110
+      ],
+      "flags": {},
+      "order": 14,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 10
+        },
+        {
+          "name": "width",
+          "type": "INT",
+          "widget": {
+            "name": "width"
+          },
+          "link": 11
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "widget": {
+            "name": "height"
+          },
+          "link": 12
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": [
+            13
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LTXMatchImageSize"
+      },
+      "widgets_values": [
+        1280,
+        720
+      ],
+      "title": "FB-A4.1 match to source size",
+      "color": "#2a4a2a",
+      "bgcolor": "#1f331f"
+    },
+    {
+      "id": 15,
+      "type": "LTXSaveNumberedImages",
+      "pos": [
+        2680,
+        120
+      ],
+      "size": [
+        360,
+        300
+      ],
+      "flags": {},
+      "order": 15,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 13
+        },
+        {
+          "name": "clipname",
+          "type": "STRING",
+          "widget": {
+            "name": "clipname"
+          },
+          "link": 14
+        }
+      ],
+      "outputs": [
+        {
+          "name": "saved",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LTXSaveNumberedImages"
+      },
+      "widgets_values": [
+        "clip",
+        "blackout/stills",
+        1,
+        4,
+        true,
+        false
+      ],
+      "title": "FB-A5.1 save opt01-opt04",
+      "color": "#2a4a2a",
+      "bgcolor": "#1f331f"
+    },
+    {
+      "id": 16,
+      "type": "PreviewAny",
+      "pos": [
+        2380,
+        270
+      ],
+      "size": [
+        260,
+        150
+      ],
+      "flags": {},
+      "order": 16,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 15
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [],
+      "title": "FB-fal status call 1"
+    },
+    {
+      "id": 17,
+      "type": "LTXFalMappedEndpointWithStatus",
+      "pos": [
+        1940,
+        450
+      ],
+      "size": [
+        400,
+        300
+      ],
+      "flags": {},
+      "order": 17,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 17,
+          "shape": 7
+        },
+        {
+          "name": "image_2",
+          "type": "IMAGE",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "arguments_json",
+          "type": "STRING",
+          "widget": {
+            "name": "arguments_json"
+          },
+          "link": 16
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "links": [],
+          "slot_index": 0
+        },
+        {
+          "name": "status",
+          "type": "STRING",
+          "links": [
+            23
+          ],
+          "slot_index": 1
+        },
+        {
+          "name": "video_url",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 2
+        },
+        {
+          "name": "result_json",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 3
+        },
+        {
+          "name": "ok",
+          "type": "BOOLEAN",
+          "links": [],
+          "slot_index": 4
+        },
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": [
+            18
+          ],
+          "slot_index": 5
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": [],
+          "slot_index": 6
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LTXFalMappedEndpointWithStatus"
+      },
+      "widgets_values": [
+        "fal-ai/nano-banana-pro/edit",
+        "{}",
+        22,
+        "fixed",
+        false,
+        true,
+        "blackout/fal_status_log.txt",
+        "auto",
+        "images"
+      ],
+      "title": "FB-A3.2 Nano Banana Pro (fal) call 2",
+      "color": "#2a4a2a",
+      "bgcolor": "#1f331f"
+    },
+    {
+      "id": 18,
+      "type": "LTXMatchImageSize",
+      "pos": [
+        2380,
+        450
+      ],
+      "size": [
+        260,
+        110
+      ],
+      "flags": {},
+      "order": 18,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 18
+        },
+        {
+          "name": "width",
+          "type": "INT",
+          "widget": {
+            "name": "width"
+          },
+          "link": 19
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "widget": {
+            "name": "height"
+          },
+          "link": 20
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": [
+            21
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LTXMatchImageSize"
+      },
+      "widgets_values": [
+        1280,
+        720
+      ],
+      "title": "FB-A4.2 match to source size",
+      "color": "#2a4a2a",
+      "bgcolor": "#1f331f"
+    },
+    {
+      "id": 19,
+      "type": "LTXSaveNumberedImages",
+      "pos": [
+        2680,
+        450
+      ],
+      "size": [
+        360,
+        300
+      ],
+      "flags": {},
+      "order": 19,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 21
+        },
+        {
+          "name": "clipname",
+          "type": "STRING",
+          "widget": {
+            "name": "clipname"
+          },
+          "link": 22
+        }
+      ],
+      "outputs": [
+        {
+          "name": "saved",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LTXSaveNumberedImages"
+      },
+      "widgets_values": [
+        "clip",
+        "blackout/stills",
+        5,
+        4,
+        true,
+        false
+      ],
+      "title": "FB-A5.2 save opt05-opt08",
+      "color": "#2a4a2a",
+      "bgcolor": "#1f331f"
+    },
+    {
+      "id": 20,
+      "type": "PreviewAny",
+      "pos": [
+        2380,
+        600
+      ],
+      "size": [
+        260,
+        150
+      ],
+      "flags": {},
+      "order": 20,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 23
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [],
+      "title": "FB-fal status call 2"
+    },
+    {
+      "id": 21,
+      "type": "LTXFalMappedEndpointWithStatus",
+      "pos": [
+        1940,
+        780
+      ],
+      "size": [
+        400,
+        300
+      ],
+      "flags": {},
+      "order": 21,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 25,
+          "shape": 7
+        },
+        {
+          "name": "image_2",
+          "type": "IMAGE",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "arguments_json",
+          "type": "STRING",
+          "widget": {
+            "name": "arguments_json"
+          },
+          "link": 24
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "links": [],
+          "slot_index": 0
+        },
+        {
+          "name": "status",
+          "type": "STRING",
+          "links": [
+            31
+          ],
+          "slot_index": 1
+        },
+        {
+          "name": "video_url",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 2
+        },
+        {
+          "name": "result_json",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 3
+        },
+        {
+          "name": "ok",
+          "type": "BOOLEAN",
+          "links": [],
+          "slot_index": 4
+        },
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": [
+            26
+          ],
+          "slot_index": 5
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": [],
+          "slot_index": 6
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LTXFalMappedEndpointWithStatus"
+      },
+      "widgets_values": [
+        "fal-ai/nano-banana-pro/edit",
+        "{}",
+        33,
+        "fixed",
+        false,
+        true,
+        "blackout/fal_status_log.txt",
+        "auto",
+        "images"
+      ],
+      "title": "FB-A3.3 Nano Banana Pro (fal) call 3",
+      "color": "#2a4a2a",
+      "bgcolor": "#1f331f"
+    },
+    {
+      "id": 22,
+      "type": "LTXMatchImageSize",
+      "pos": [
+        2380,
+        780
+      ],
+      "size": [
+        260,
+        110
+      ],
+      "flags": {},
+      "order": 22,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 26
+        },
+        {
+          "name": "width",
+          "type": "INT",
+          "widget": {
+            "name": "width"
+          },
+          "link": 27
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "widget": {
+            "name": "height"
+          },
+          "link": 28
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": [
+            29
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LTXMatchImageSize"
+      },
+      "widgets_values": [
+        1280,
+        720
+      ],
+      "title": "FB-A4.3 match to source size",
+      "color": "#2a4a2a",
+      "bgcolor": "#1f331f"
+    },
+    {
+      "id": 23,
+      "type": "LTXSaveNumberedImages",
+      "pos": [
+        2680,
+        780
+      ],
+      "size": [
+        360,
+        300
+      ],
+      "flags": {},
+      "order": 23,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 29
+        },
+        {
+          "name": "clipname",
+          "type": "STRING",
+          "widget": {
+            "name": "clipname"
+          },
+          "link": 30
+        }
+      ],
+      "outputs": [
+        {
+          "name": "saved",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LTXSaveNumberedImages"
+      },
+      "widgets_values": [
+        "clip",
+        "blackout/stills",
+        9,
+        2,
+        true,
+        false
+      ],
+      "title": "FB-A5.3 save opt09-opt10",
+      "color": "#2a4a2a",
+      "bgcolor": "#1f331f"
+    },
+    {
+      "id": 24,
+      "type": "PreviewAny",
+      "pos": [
+        2380,
+        930
+      ],
+      "size": [
+        260,
+        150
+      ],
+      "flags": {},
+      "order": 24,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 31
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [],
+      "title": "FB-fal status call 3"
+    },
+    {
+      "id": 30,
+      "type": "LTXBlackoutVideoArgs",
+      "pos": [
+        520,
+        1180
+      ],
+      "size": [
+        440,
+        560
+      ],
+      "flags": {},
+      "order": 30,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 32
+        }
+      ],
+      "outputs": [
+        {
+          "name": "arguments_json",
+          "type": "STRING",
+          "links": [
+            43
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "endpoint_id",
+          "type": "STRING",
+          "links": [
+            42
+          ],
+          "slot_index": 1
+        },
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "links": [
+            39,
+            45,
+            48
+          ],
+          "slot_index": 2
+        },
+        {
+          "name": "num_frames",
+          "type": "INT",
+          "links": [],
+          "slot_index": 3
+        },
+        {
+          "name": "fps",
+          "type": "FLOAT",
+          "links": [],
+          "slot_index": 4
+        },
+        {
+          "name": "cap_info",
+          "type": "STRING",
+          "links": [
+            33
+          ],
+          "slot_index": 5
+        },
+        {
+          "name": "aleph_video",
+          "type": "VIDEO",
+          "links": [
+            35
+          ],
+          "slot_index": 6
+        },
+        {
+          "name": "aleph_prompt",
+          "type": "STRING",
+          "links": [
+            37
+          ],
+          "slot_index": 7
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LTXBlackoutVideoArgs"
+      },
+      "widgets_values": [
+        "ltx23_quality_ref_v2v",
+        "Edit @Video1 so every frame matches the lighting of @Image1: a total blackout. All lights, lamps, screens, signs, windows and ambient light in @Video1 are off, and the scene is in near-total darkness. The only light is one off-camera flashlight beam from the same side as in @Image1, with subtle volumetric dust/haze in the beam; the beam direction stays consistent for the whole shot. Keep the exact camera motion, timing, framing, geometry, people, poses and actions of @Video1. Do not add objects, people or camera moves. Photorealistic, no flicker.",
+        "BLACKOUT. Every light in the scene is switched off: lamps, ceiling lights, screens, signs, windows and ambient light are dark, and the scene is in near-total darkness. The only light is a single off-camera flashlight beam from one side, matching the reference still, with subtle volumetric dust and haze in the beam and a consistent beam direction for the whole shot. Preserve the exact camera motion, timing, framing, geometry, people, poses and actions of the source video. No new objects, no flicker, photorealistic.",
+        "daylight, bright room, lit lamps, glowing screens, neon glow, lit windows, ambient fill, sky light, overexposed, washed out, multiple light sources, visible flashlight, flicker, changing light direction, new objects, extra people, text, watermark, cartoon, 3d render",
+        5.0,
+        0.0
+      ],
+      "title": "B1. Video backend + args (default: LTX 2.3 via fal; Aleph selectable)",
+      "color": "#223355",
+      "bgcolor": "#1a2540"
+    },
+    {
+      "id": 31,
+      "type": "PreviewAny",
+      "pos": [
+        520,
+        1780
+      ],
+      "size": [
+        440,
+        200
+      ],
+      "flags": {},
+      "order": 31,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 33
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [],
+      "title": "B: backend / frames / cost"
+    },
+    {
+      "id": 32,
+      "type": "RunwayAleph2KeyframeNode",
+      "pos": [
+        1020,
+        1180
+      ],
+      "size": [
+        340,
+        150
+      ],
+      "flags": {},
+      "order": 32,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 34
+        },
+        {
+          "name": "keyframes",
+          "type": "RUNWAY_ALEPH2_KEYFRAME",
+          "link": null,
+          "shape": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "keyframes",
+          "type": "RUNWAY_ALEPH2_KEYFRAME",
+          "links": [
+            36
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "RunwayAleph2KeyframeNode"
+      },
+      "widgets_values": [
+        "Absolute time (seconds)",
+        0
+      ],
+      "title": "B2a. Chosen still as Aleph2 keyframe @ 0 s",
+      "color": "#443355",
+      "bgcolor": "#2e2440"
+    },
+    {
+      "id": 33,
+      "type": "RunwayAleph2VideoToVideoNode",
+      "pos": [
+        1400,
+        1180
+      ],
+      "size": [
+        400,
+        260
+      ],
+      "flags": {},
+      "order": 33,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 35
+        },
+        {
+          "name": "keyframes",
+          "type": "RUNWAY_ALEPH2_KEYFRAME",
+          "link": 36,
+          "shape": 7
+        },
+        {
+          "name": "prompt_images",
+          "type": "RUNWAY_ALEPH2_PROMPT_IMAGE",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 37
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [
+            38
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "RunwayAleph2VideoToVideoNode"
+      },
+      "widgets_values": [
+        "(fed from B1)",
+        7,
+        "fixed",
+        "low"
+      ],
+      "title": "B3a. Runway Aleph 2.0 (optional, pick aleph2_comfy_partner in B1)",
+      "color": "#443355",
+      "bgcolor": "#2e2440"
+    },
+    {
+      "id": 34,
+      "type": "LTXBlackoutConformPair",
+      "pos": [
+        1840,
+        1180
+      ],
+      "size": [
+        380,
+        200
+      ],
+      "flags": {},
+      "order": 34,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "target_video",
+          "type": "VIDEO",
+          "link": 38
+        },
+        {
+          "name": "source_video",
+          "type": "VIDEO",
+          "link": 39
+        },
+        {
+          "name": "clipname",
+          "type": "STRING",
+          "widget": {
+            "name": "clipname"
+          },
+          "link": 40
+        }
+      ],
+      "outputs": [
+        {
+          "name": "target_conformed",
+          "type": "VIDEO",
+          "links": [],
+          "slot_index": 0
+        },
+        {
+          "name": "source_matched",
+          "type": "VIDEO",
+          "links": [],
+          "slot_index": 1
+        },
+        {
+          "name": "report",
+          "type": "STRING",
+          "links": [
+            41
+          ],
+          "slot_index": 2
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LTXBlackoutConformPair"
+      },
+      "widgets_values": [
+        "clip",
+        "blackout/targets",
+        "blackout/pairs",
+        true
+      ],
+      "title": "B4a. Conform + save pair (Aleph)",
+      "color": "#443355",
+      "bgcolor": "#2e2440"
+    },
+    {
+      "id": 35,
+      "type": "PreviewAny",
+      "pos": [
+        2260,
+        1180
+      ],
+      "size": [
+        360,
+        200
+      ],
+      "flags": {},
+      "order": 35,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 41
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [],
+      "title": "pair report (Aleph)"
+    },
+    {
+      "id": 36,
+      "type": "LTXFalMappedEndpointWithStatus",
+      "pos": [
+        1400,
+        1500
+      ],
+      "size": [
+        400,
+        300
+      ],
+      "flags": {},
+      "order": 36,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 44,
+          "shape": 7
+        },
+        {
+          "name": "image_2",
+          "type": "IMAGE",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 45,
+          "shape": 7
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "endpoint_id",
+          "type": "STRING",
+          "widget": {
+            "name": "endpoint_id"
+          },
+          "link": 42
+        },
+        {
+          "name": "arguments_json",
+          "type": "STRING",
+          "widget": {
+            "name": "arguments_json"
+          },
+          "link": 43
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "links": [
+            47
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "status",
+          "type": "STRING",
+          "links": [
+            46
+          ],
+          "slot_index": 1
+        },
+        {
+          "name": "video_url",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 2
+        },
+        {
+          "name": "result_json",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 3
+        },
+        {
+          "name": "ok",
+          "type": "BOOLEAN",
+          "links": [],
+          "slot_index": 4
+        },
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": [],
+          "slot_index": 5
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": [],
+          "slot_index": 6
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LTXFalMappedEndpointWithStatus"
+      },
+      "widgets_values": [
+        "(fed from B1)",
+        "{}",
+        7,
+        "fixed",
+        false,
+        true,
+        "blackout/fal_status_log.txt",
+        "auto",
+        "video"
+      ],
+      "title": "B3. LTX 2.3 ref video-to-video (fal) - default",
+      "color": "#223355",
+      "bgcolor": "#1a2540"
+    },
+    {
+      "id": 37,
+      "type": "PreviewAny",
+      "pos": [
+        1020,
+        1500
+      ],
+      "size": [
+        340,
+        200
+      ],
+      "flags": {},
+      "order": 37,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 46
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [],
+      "title": "fal status (video)"
+    },
+    {
+      "id": 38,
+      "type": "LTXBlackoutConformPair",
+      "pos": [
+        1840,
+        1500
+      ],
+      "size": [
+        380,
+        200
+      ],
+      "flags": {},
+      "order": 38,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "target_video",
+          "type": "VIDEO",
+          "link": 47
+        },
+        {
+          "name": "source_video",
+          "type": "VIDEO",
+          "link": 48
+        },
+        {
+          "name": "clipname",
+          "type": "STRING",
+          "widget": {
+            "name": "clipname"
+          },
+          "link": 49
+        }
+      ],
+      "outputs": [
+        {
+          "name": "target_conformed",
+          "type": "VIDEO",
+          "links": [],
+          "slot_index": 0
+        },
+        {
+          "name": "source_matched",
+          "type": "VIDEO",
+          "links": [],
+          "slot_index": 1
+        },
+        {
+          "name": "report",
+          "type": "STRING",
+          "links": [
+            50
+          ],
+          "slot_index": 2
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LTXBlackoutConformPair"
+      },
+      "widgets_values": [
+        "clip",
+        "blackout_ltx/targets",
+        "blackout_ltx/pairs",
+        true
+      ],
+      "title": "B4. Conform + save pair (LTX)",
+      "color": "#223355",
+      "bgcolor": "#1a2540"
+    },
+    {
+      "id": 39,
+      "type": "PreviewAny",
+      "pos": [
+        2260,
+        1500
+      ],
+      "size": [
+        360,
+        200
+      ],
+      "flags": {},
+      "order": 39,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 50
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [],
+      "title": "pair report (LTX)"
+    },
+    {
+      "id": 50,
+      "type": "Note",
+      "pos": [
+        -460,
+        120
+      ],
+      "size": [
+        460,
+        1180
+      ],
+      "flags": {},
+      "order": 50,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "Note"
+      },
+      "widgets_values": [
+        "BLACKOUT DATASET BUILDER  (run with Ctrl+Enter)\n\nEVERY CLIP GOES THROUGH TWO STEPS:\n\nSTEP 1 - STILLS (on Magnific, outside Comfy)\n  An agent makes 10 Blackout stills of the clip's first frame\n  on Magnific (Nano Banana Pro, 750 Magnific credits per clip) and\n  drops them in input/blackout/stills/clip_XXX/clip_XXX_s01..s10.png.\n  See the blue note in the MODE A group for how to pick one.\n  (Mode A toggle = true now only previews the first frame, free.)\n\nSTEP 2 - MODE B (toggle = false) -> Blackout version of the clip\n  1. Pick the clip in node 1.\n  2. In node 2 set chosen_option to the still number you picked\n     (7 = clip_XXX_s07.png). Leave still_path_override empty and\n     stills_dir = blackout/stills.\n     (Override: paste e.g. blackout/stills/clip_001/clip_001_s07.png\n      into still_path_override. It wins over chosen_option, so clear\n      it before switching clips.)\n  3. Flip the toggle to B (false) and run.\n     B0 shows the still that was actually used - check it.\n     Node B1 picks the backend:\n       ltx23_quality_ref_v2v (default)  LTX 2.3 ref-v2v on fal, ~$0.27/clip\n       aleph2_comfy_partner  Runway Aleph 2.0 (Comfy credits, ~$2/clip)\n       kling_o3_pro_edit   Kling O3 Edit Pro on fal, ~$0.85/clip\n       wan27_edit          Wan 2.7 on fal, ~$0.10/s\n     Only the branch you pick runs; the other is skipped silently.\n  4. The result is conformed to the source's exact resolution, fps\n     and frame count, then saved:\n       output/blackout_ltx/targets/<clip>.mp4  (LTX; Aleph -> output/blackout/)\n       output/blackout_ltx/pairs/<clip>_src.mp4\n     Read the pair report. Any padding/mismatch warning = check it.\n\nFALLBACK (bypassed, right of Mode A)\n  Old fal Nano Banana Pro stills (4+4+2, ~$1.50/clip). To use:\n  select those nodes, Ctrl+B, run Mode A. They save legacy\n  output/blackout/stills/<clip>_optNN.png, which Mode B still finds\n  if no Magnific still with that number exists.\n  fal spend guard: config.ini [spend_guard] ($2/session).\n  Aleph (Comfy credits) is NOT covered by the fal guard.\n\nSHORTCUTS\n  Ctrl+Enter run | Ctrl+M mute | Ctrl+B bypass | R refresh clips\n\n"
+      ],
+      "title": "READ ME - how this works",
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 51,
+      "type": "PreviewImage",
+      "pos": [
+        520,
+        330
+      ],
+      "size": [
+        320,
+        260
+      ],
+      "flags": {},
+      "order": 51,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 51
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": [],
+      "title": "A2. First frame preview (free)",
+      "color": "#2a4a2a",
+      "bgcolor": "#1f331f"
+    },
+    {
+      "id": 52,
+      "type": "PreviewImage",
+      "pos": [
+        1020,
+        1740
+      ],
+      "size": [
+        340,
+        240
+      ],
+      "flags": {},
+      "order": 52,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 52
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": [],
+      "title": "B0. Chosen still actually used (check it!)"
+    },
+    {
+      "id": 53,
+      "type": "Note",
+      "pos": [
+        860,
+        120
+      ],
+      "size": [
+        540,
+        900
+      ],
+      "flags": {},
+      "order": 53,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "Note"
+      },
+      "widgets_values": [
+        "MODE A = STILLS COME FROM MAGNIFIC (not made in Comfy any more)\n\nThe 10 Blackout stills for each clip are generated on Magnific\n(Google Nano Banana Pro, 16:9, 1k, your Magnific project)\nby the agent, using Magnific credits (75 per still,\n750 per clip). Nothing in this workflow makes stills now.\n\nWHERE THEY ARRIVE\n  <ComfyUI>\\input\\blackout\\stills\\clip_XXX\\\n    clip_XXX_s01.png ... clip_XXX_s10.png   (already 1280x720)\n    clip_XXX_contact.jpg                  (all 10, numbered)\n    raw\\                               (Magnific originals)\n    magnific.json                       (ids, prompt, sizes)\n  XXX = the 3-digit clip number (CLIP_001_name... -> clip_001).\n\nHOW TO PICK ONE\n  1. Open clip_XXX_contact.jpg (or the PNGs) in Explorer.\n  2. Pick the best: pitch black except ONE flashlight beam,\n     no leaked light in windows/screens/lamps, nothing added,\n     removed or moved, same framing as the source.\n  3. Remember its number: s07 -> chosen_option = 7 in node 2.\n  (Missing a clip's folder? Ask the agent to run stills for it.)\n\nWHAT MODE A (toggle = true) STILL DOES HERE\n  Only previews the clip's first frame (free). The old fal\n  Nano Banana Pro nodes are kept on the right as a BYPASSED\n  fallback; re-enabling them costs fal money (~$1.50/clip).\n"
+      ],
+      "title": "MODE A - Magnific stills: where they are and how to pick",
+      "color": "#223",
+      "bgcolor": "#335"
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      2,
+      0,
+      "VIDEO"
+    ],
+    [
+      2,
+      2,
+      5,
+      3,
+      0,
+      "STRING"
+    ],
+    [
+      3,
+      1,
+      2,
+      4,
+      0,
+      "STRING"
+    ],
+    [
+      4,
+      2,
+      0,
+      10,
+      0,
+      "VIDEO"
+    ],
+    [
+      5,
+      10,
+      1,
+      11,
+      0,
+      "INT"
+    ],
+    [
+      6,
+      10,
+      2,
+      11,
+      1,
+      "INT"
+    ],
+    [
+      7,
+      11,
+      3,
+      12,
+      0,
+      "STRING"
+    ],
+    [
+      8,
+      11,
+      0,
+      13,
+      4,
+      "STRING"
+    ],
+    [
+      9,
+      10,
+      0,
+      13,
+      0,
+      "IMAGE"
+    ],
+    [
+      10,
+      13,
+      5,
+      14,
+      0,
+      "IMAGE"
+    ],
+    [
+      11,
+      10,
+      1,
+      14,
+      1,
+      "INT"
+    ],
+    [
+      12,
+      10,
+      2,
+      14,
+      2,
+      "INT"
+    ],
+    [
+      13,
+      14,
+      0,
+      15,
+      0,
+      "IMAGE"
+    ],
+    [
+      14,
+      2,
+      3,
+      15,
+      1,
+      "STRING"
+    ],
+    [
+      15,
+      13,
+      1,
+      16,
+      0,
+      "STRING"
+    ],
+    [
+      16,
+      11,
+      1,
+      17,
+      4,
+      "STRING"
+    ],
+    [
+      17,
+      10,
+      0,
+      17,
+      0,
+      "IMAGE"
+    ],
+    [
+      18,
+      17,
+      5,
+      18,
+      0,
+      "IMAGE"
+    ],
+    [
+      19,
+      10,
+      1,
+      18,
+      1,
+      "INT"
+    ],
+    [
+      20,
+      10,
+      2,
+      18,
+      2,
+      "INT"
+    ],
+    [
+      21,
+      18,
+      0,
+      19,
+      0,
+      "IMAGE"
+    ],
+    [
+      22,
+      2,
+      3,
+      19,
+      1,
+      "STRING"
+    ],
+    [
+      23,
+      17,
+      1,
+      20,
+      0,
+      "STRING"
+    ],
+    [
+      24,
+      11,
+      2,
+      21,
+      4,
+      "STRING"
+    ],
+    [
+      25,
+      10,
+      0,
+      21,
+      0,
+      "IMAGE"
+    ],
+    [
+      26,
+      21,
+      5,
+      22,
+      0,
+      "IMAGE"
+    ],
+    [
+      27,
+      10,
+      1,
+      22,
+      1,
+      "INT"
+    ],
+    [
+      28,
+      10,
+      2,
+      22,
+      2,
+      "INT"
+    ],
+    [
+      29,
+      22,
+      0,
+      23,
+      0,
+      "IMAGE"
+    ],
+    [
+      30,
+      2,
+      3,
+      23,
+      1,
+      "STRING"
+    ],
+    [
+      31,
+      21,
+      1,
+      24,
+      0,
+      "STRING"
+    ],
+    [
+      32,
+      2,
+      1,
+      30,
+      0,
+      "VIDEO"
+    ],
+    [
+      33,
+      30,
+      5,
+      31,
+      0,
+      "STRING"
+    ],
+    [
+      34,
+      2,
+      2,
+      32,
+      0,
+      "IMAGE"
+    ],
+    [
+      35,
+      30,
+      6,
+      33,
+      0,
+      "VIDEO"
+    ],
+    [
+      36,
+      32,
+      0,
+      33,
+      1,
+      "RUNWAY_ALEPH2_KEYFRAME"
+    ],
+    [
+      37,
+      30,
+      7,
+      33,
+      3,
+      "STRING"
+    ],
+    [
+      38,
+      33,
+      0,
+      34,
+      0,
+      "VIDEO"
+    ],
+    [
+      39,
+      30,
+      2,
+      34,
+      1,
+      "VIDEO"
+    ],
+    [
+      40,
+      2,
+      3,
+      34,
+      2,
+      "STRING"
+    ],
+    [
+      41,
+      34,
+      2,
+      35,
+      0,
+      "STRING"
+    ],
+    [
+      42,
+      30,
+      1,
+      36,
+      4,
+      "STRING"
+    ],
+    [
+      43,
+      30,
+      0,
+      36,
+      5,
+      "STRING"
+    ],
+    [
+      44,
+      2,
+      2,
+      36,
+      0,
+      "IMAGE"
+    ],
+    [
+      45,
+      30,
+      2,
+      36,
+      2,
+      "VIDEO"
+    ],
+    [
+      46,
+      36,
+      1,
+      37,
+      0,
+      "STRING"
+    ],
+    [
+      47,
+      36,
+      0,
+      38,
+      0,
+      "VIDEO"
+    ],
+    [
+      48,
+      30,
+      2,
+      38,
+      1,
+      "VIDEO"
+    ],
+    [
+      49,
+      2,
+      3,
+      38,
+      2,
+      "STRING"
+    ],
+    [
+      50,
+      38,
+      2,
+      39,
+      0,
+      "STRING"
+    ],
+    [
+      51,
+      10,
+      0,
+      51,
+      0,
+      "IMAGE"
+    ],
+    [
+      52,
+      2,
+      2,
+      52,
+      0,
+      "IMAGE"
+    ]
+  ],
+  "groups": [
+    {
+      "id": 1,
+      "title": "SOURCE + MODE SWITCH",
+      "bounding": [
+        20,
+        40,
+        420,
+        890
+      ],
+      "color": "#b58b2a",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "id": 2,
+      "title": "MODE A - stills come from MAGNIFIC (made outside Comfy, via the box agent)",
+      "bounding": [
+        500,
+        40,
+        920,
+        1060
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "id": 3,
+      "title": "Mode B: LTX 2.3 on fal relights the clip to the chosen still (Aleph optional).",
+      "bounding": [
+        500,
+        1100,
+        2140,
+        900
+      ],
+      "color": "#8A8",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "id": 4,
+      "title": "FALLBACK (BYPASSED) - old Mode A: Nano Banana Pro via fal. Select all nodes here + Ctrl+B to re-enable",
+      "bounding": [
+        1440,
+        40,
+        1620,
+        1060
+      ],
+      "color": "#444444",
+      "font_size": 24,
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.55,
+      "offset": [
+        520,
+        40
+      ]
+    },
+    "shareable_note": "Generic copy: no API keys (set FAL_KEY in env/config), no personal paths, clip names are placeholders."
+  },
+  "version": 0.4
+}
