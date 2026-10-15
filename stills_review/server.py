@@ -57,8 +57,7 @@ HTTP API  (all JSON; bound to 127.0.0.1 by default, there is NO auth -- keep it 
     GET  /api/selects          -> selects.json ({} if missing)
     POST /api/selects          -> {"clip":"clip_001","select":3,"rerun":false,"removed":false}
                                   or a map {"clip_001": {...}, "clip_002": {...}}; merged per clip
-    GET  /api/redo_queue       -> canonical hand-off list for the next step (aliases: /api/queue,
-                                  /api/aleph_queue kept for old scripts):
+    GET  /api/redo_queue       -> canonical hand-off list for the next step (alias: /api/queue):
                                   {"queue":[{clip, select, still}], "removed_skipped":[...],
                                    "rerun":[...], "unpicked":[...], round, generated, rule}
                                   (/api/queue is an alias)
@@ -286,7 +285,6 @@ def redo_queue():
             "video_backend": VIDEO_BACKEND}
 
 
-aleph_queue = redo_queue  # backward-compatible name
 
 
 # ----------------------------------------------------------------------------- HTTP handler
@@ -326,7 +324,7 @@ class Handler(BaseHTTPRequestHandler):
                 with SELECTS_LOCK:
                     data = read_selects()
                 return self._send(200, data, extra={"Cache-Control": "no-store"})
-            if path in ("/api/redo_queue", "/api/queue", "/api/aleph_queue"):  # aleph_queue = legacy alias
+            if path in ("/api/redo_queue", "/api/queue"):
                 return self._send(200, redo_queue(), extra={"Cache-Control": "no-store"})
             if path.startswith("/img/"):
                 return self._img(path[5:])

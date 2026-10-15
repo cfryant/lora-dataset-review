@@ -2,7 +2,7 @@
  * DEMO-ONLY  --  static "fake server" for the GitHub Pages demo (docs/).
  * =====================================================================
  * The real apps (stills_review/, video_review/) talk to a small Python server through
- * relative URLs: api/clips, api/selects, api/redo_queue (alias api/aleph_queue), api/review_round.
+ * relative URLs: api/clips, api/selects, api/redo_queue (alias api/queue), api/review_round.
  * On GitHub Pages there is no server, so this script is loaded BEFORE the app's own <script>
  * and replaces window.fetch for those api/* URLs only:
  *   - clip lists come from ./manifest.json (written by tools/build_pages.py),
@@ -73,7 +73,7 @@
   }
   function stillsApi(name, method, body, man, st) {
     if (name === "clips") return json(stillsClips(man, st));
-    if (name === "redo_queue" || name === "queue" || name === "aleph_queue") return json(stillsQueue(man, st));
+    if (name === "redo_queue" || name === "queue") return json(stillsQueue(man, st));
     if (name === "selects" && method === "GET") return json(st.selects);
     if (name === "selects" && method === "POST") {
       try {

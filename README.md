@@ -109,7 +109,7 @@ while generations are still landing.
 * `rerun`: candidates should be regenerated (an earlier `select` is kept but ignored).
 * `removed`: present only while true. **Removed clips must never go to the next step**, even with a `select`.
 
-The ready-made hand-off list is `GET /api/redo_queue` (aliases `/api/queue` and the legacy `/api/aleph_queue`), or offline
+The ready-made hand-off list is `GET /api/redo_queue` (alias `/api/queue`), or offline
 `python tools/export_approved.py stills --stills DIR`:
 
 ```json

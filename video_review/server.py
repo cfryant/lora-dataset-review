@@ -52,7 +52,7 @@ HTTP API  (JSON; bound to 127.0.0.1 by default, there is NO auth -- keep it loca
                                      load; hidden = clips already decided for their current render
     GET  /api/redo_queue          -> rejected clips (not stale) to re-render with LTX 2.3 ref
                                      video-to-video via fal: {queue:[{clip, short, note, still,
-                                     target}], video_backend}. Alias: /api/aleph_queue (legacy).
+                                     target}], video_backend}.
                                      Read-only: it lists work, it never calls fal.
     POST /api/selects             -> {"clip": "<id>", "status": "approved"|"reject"|null, "note": ""}
 
@@ -371,7 +371,7 @@ class H(BaseHTTPRequestHandler):
                 return self._send(200, scan_clips())
             if path == "/api/selects":
                 return self._send(200, read_json(SELECTS_FILE, {}))
-            if path in ("/api/redo_queue", "/api/aleph_queue"):  # aleph_queue = legacy alias
+            if path == "/api/redo_queue":
                 return self._send(200, redo_queue())
             if path == "/api/review_round":
                 return self._send(200, review_round())
