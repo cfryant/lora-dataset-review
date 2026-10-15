@@ -5,7 +5,7 @@ Read the review results WITHOUT the servers running and print / copy what was ap
 
 Two subcommands, both stdlib-only and read-only unless --copy-to is given:
 
-  stills  -> the hand-off list from the stills app (same rules as GET /api/aleph_queue):
+  stills  -> the hand-off list from the stills app (same rules as GET /api/redo_queue):
              python tools/export_approved.py stills --stills DIR [--round FILE]
              prints {"queue":[{clip, select, still, path}], "removed_skipped", "rerun", "unpicked"}
              REMOVED RULE: clips with "removed": true are never in "queue".

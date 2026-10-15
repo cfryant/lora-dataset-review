@@ -6,7 +6,7 @@ Before/after video review server  --  approve or reject (source clip, generated 
 WHAT IT IS
     A tiny, stdlib-only (no pip installs, no ffprobe) local web app at http://127.0.0.1:8766/.
     For every clip it plays the frame-aligned SOURCE video and the generated TARGET video
-    (e.g. a Runway Aleph / ComfyUI video-to-video render) in sync: side-by-side, wipe, or
+    (e.g. an LTX 2.3 ref video-to-video via fal / ComfyUI render) in sync: side-by-side, wipe, or
     toggle mode, with frame stepping. The reviewer clicks Approve or Reject (+ optional note).
     Approved pairs become (control -> target) training pairs for a LoRA / IC-LoRA.
 
@@ -50,6 +50,10 @@ HTTP API  (JSON; bound to 127.0.0.1 by default, there is NO auth -- keep it loca
     GET  /api/selects             -> video_selects.json ({} if missing)
     GET  /api/review_round        -> {hidden, shown, stale}: the page takes this snapshot ONCE at
                                      load; hidden = clips already decided for their current render
+    GET  /api/redo_queue          -> rejected clips (not stale) to re-render with LTX 2.3 ref
+                                     video-to-video via fal: {queue:[{clip, short, note, still,
+                                     target}], video_backend}. Alias: /api/aleph_queue (legacy).
+                                     Read-only: it lists work, it never calls fal.
     POST /api/selects             -> {"clip": "<id>", "status": "approved"|"reject"|null, "note": ""}
 
 HOW TO RUN
@@ -73,7 +77,7 @@ HOW AN ASSISTANT SHOULD HAND THIS TO A USER
        Space play/pause, , . frame step, 1/2/3 mode, Left/Right flip (toggle mode),
        Up/Down next clip, N next undecided, P show all. Decisions save ONLY on button clicks.
     3. Afterwards read video_selects.json (or run tools/export_approved.py). Re-render the
-       "reject" clips; once a new target is written its old decision becomes stale automatically.
+       "reject" clips (GET /api/redo_queue) with LTX 2.3 ref video-to-video via fal; once a new target is written its old decision becomes stale automatically.
 """
 import argparse
 import datetime
@@ -292,6 +296,25 @@ def _decision_time(e):
         return None
 
 
+VIDEO_BACKEND = {"backend": "ltx23_quality_ref_v2v", "endpoint": "fal-ai/ltx-2.3-quality/reference-video-to-video", "name": "LTX 2.3 ref video-to-video via fal"}
+
+
+def redo_queue():
+    """Rejected clips whose decision is for the CURRENT render: re-render these (with the note)."""
+    sel = read_json(SELECTS_FILE, {})
+    q = []
+    for c in scan_clips()["clips"]:
+        e = sel.get(c["short"]) or sel.get(c["clip"]) or {}
+        if not isinstance(e, dict) or e.get("status") != "reject":
+            continue
+        t = _decision_time(e)
+        if t is not None and t < c["target"]["mtime"]:
+            continue  # stale: already re-rendered
+        q.append({"clip": c["clip"], "short": c["short"], "note": e.get("note", ""),
+                  "still": c.get("still"), "target": c["target"]["file"]})
+    return {"queue": q, "video_backend": VIDEO_BACKEND, "generated": now_iso()}
+
+
 def review_round():
     """Which clips the page hides this session (already decided for the CURRENT render).
     The page calls this once per load and never recomputes it, so the list stays stable."""
@@ -348,6 +371,8 @@ class H(BaseHTTPRequestHandler):
                 return self._send(200, scan_clips())
             if path == "/api/selects":
                 return self._send(200, read_json(SELECTS_FILE, {}))
+            if path in ("/api/redo_queue", "/api/aleph_queue"):  # aleph_queue = legacy alias
+                return self._send(200, redo_queue())
             if path == "/api/review_round":
                 return self._send(200, review_round())
             if len(parts) == 3 and parts[0] == "media" and parts[1] in ("targets", "pairs") and VID_RE.match(parts[2]):

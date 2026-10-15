@@ -22,10 +22,10 @@ Add `--demo` to either command for placeholder data. Run `python tests/smoke_tes
    * video: `Space` play, `,` `.` frame step, `1/2/3` mode, `←→` flip, `↑↓` clip, `N` next undecided, `P` show all
 3. Do not edit the JSON files while the user is reviewing. Wait until they say they are done.
 4. Read the results:
-   * stills: `GET /api/aleph_queue` or `python tools/export_approved.py stills --stills DIR`.
+   * stills: `GET /api/redo_queue` or `python tools/export_approved.py stills --stills DIR`.
      Only `queue` goes to the video model. Regenerate `rerun` clips, then start a new round with `round.json`.
    * video: `python tools/export_approved.py videos --out DIR [--copy-to DATASET --control-suffix _start --target-suffix _end]`.
-     Train on `approved` only. Re-render `reject` clips (see `note`).
+     Train on `approved` only. Re-render `reject` clips (see `note`; list: video `GET /api/redo_queue`) with LTX 2.3 ref video-to-video via fal (`fal-ai/ltx-2.3-quality/reference-video-to-video`).
 5. Report counts and paths. Do not paste whole JSON files unless asked.
 
 ## Rules you must keep

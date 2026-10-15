@@ -1,7 +1,7 @@
 # LoRA dataset review
 
 Two tiny, dependency-free local web apps for **human-in-the-loop LoRA / IC-LoRA dataset building**
-(ComfyUI, Magnific, Runway Aleph, or any image/video generator):
+(ComfyUI, Magnific, LTX 2.3 ref video-to-video via fal, or any image/video generator):
 
 1. **Stills review**: for each source clip, pick the best AI-generated "look" still (or ask for a rerun,
    or drop the clip from the set).
@@ -109,7 +109,7 @@ while generations are still landing.
 * `rerun`: candidates should be regenerated (an earlier `select` is kept but ignored).
 * `removed`: present only while true. **Removed clips must never go to the next step**, even with a `select`.
 
-The ready-made hand-off list is `GET /api/aleph_queue` (alias `/api/queue`), or offline
+The ready-made hand-off list is `GET /api/redo_queue` (aliases `/api/queue` and the legacy `/api/aleph_queue`), or offline
 `python tools/export_approved.py stills --stills DIR`:
 
 ```json
@@ -254,12 +254,12 @@ are the human approval gates. Follow these steps:
    run it locally. Never bind `0.0.0.0` on an untrusted network.
 4. **Do not touch the JSON files while the user is reviewing.** Wait until they say they are done.
 5. **Read the results:**
-   * Stills: `GET /api/aleph_queue` or `tools/export_approved.py stills`. Send **only** `queue` items to the
+   * Stills: `GET /api/redo_queue` or `tools/export_approved.py stills`. Send **only** `queue` items to the
      video model, using `still` as the reference image. Regenerate candidates for `rerun` clips, then start a new
      round with `round.json` (`clips` = the regenerated ids, `round_start_hidden` = []). **Never** use
      `removed_skipped` clips.
-   * Video: `tools/export_approved.py videos --out DIR`. Use `approved` pairs for training. Re-render `reject`
-     clips, and read the user's `note` for what to fix. When a new render overwrites the target, its old
+   * Video: `tools/export_approved.py videos --out DIR`. Use `approved` pairs for training. Re-render `reject` (list: video `GET /api/redo_queue`)
+     clips with LTX 2.3 ref video-to-video via fal, and read the user's `note` for what to fix. When a new render overwrites the target, its old
      decision becomes stale, so the clip reappears for review automatically.
 6. **Package the dataset** with `--copy-to DATASET --control-suffix … --target-suffix …` (for example
    `_start`/`_end` for fal's LTX IC-LoRA trainer), add captions as your trainer requires, and confirm the

@@ -97,7 +97,7 @@ def test_stills(stills):
         code, hdr, img = req(base + "/img/demo_002/demo_002_s01.png")
         check("stills: image served", code == 200 and img[:8] == b"\x89PNG\r\n\x1a\n" and hdr.get("Content-Type") == "image/png")
         check("stills: path traversal rejected", req(base + "/img/demo_002/..%2F..%2Fselects.json")[0] in (400, 404))
-        code, q = getj(base + "/api/aleph_queue")
+        code, q = getj(base + "/api/redo_queue")
         check("stills: queue before = [demo_001]", [x["clip"] for x in q["queue"]] == ["demo_001"], q["queue"])
         check("stills: removed clip skipped", q["removed_skipped"] == ["demo_005"])
         code, r = postj(base + "/api/selects", {"clip": "demo_002", "select": 3, "rerun": False})

@@ -24,7 +24,7 @@
   URLS:   all requests are RELATIVE (api/..., img/...) so the page also works behind a sub-path and
           in the static GitHub Pages demo (docs/stills/, built by tools/build_pages.py), where the
           DEMO-ONLY docs/assets/demo-shim.js answers api/* from localStorage instead of a server.
-  HAND-OFF: give the user the URL + the key list above; read results from /api/aleph_queue.
+  HAND-OFF: give the user the URL + the key list above; read results from /api/redo_queue.
 -->
 <html lang="en">
 <head>
@@ -217,7 +217,7 @@
   const stateOf = (clip) => selects[clip] || { select: null, rerun: false };
   const isRemoved = (clip) => stateOf(clip).removed === true;
   const isDecided = (clip) => { const s = stateOf(clip); return s.removed === true || !!s.rerun || s.select != null; };
-  // Page filter only (selects.json and /api/aleph_queue are untouched).
+  // Page filter only (selects.json and /api/redo_queue are untouched).
   const needsDecision = (clip) => { const s = stateOf(clip); return s.removed !== true && (!!s.rerun || s.select == null); };
   const isVisible = (c) => showPicked || !(hiddenSet && hiddenSet.has(c.clip));
   // Rebuild the shown list (only at load, on P, or when the round's clip set changes);

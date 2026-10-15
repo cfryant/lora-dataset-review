@@ -9,7 +9,7 @@ WHAT IT IS
     ComfyUI img2img outputs) in a before/after slider. The reviewer picks the best candidate,
     marks the clip for a Rerun (regenerate candidates), or removes the clip from the set.
     Decisions are written to selects.json, which the NEXT pipeline step (e.g. a video-to-video
-    model such as Runway Aleph that uses the chosen still as its style/look reference) reads.
+    model such as LTX 2.3 ref video-to-video via fal that uses the chosen still as its style/look reference) reads.
 
 WHEN TO USE IT
     LoRA / IC-LoRA dataset building where every training sample needs a human-approved
@@ -46,7 +46,7 @@ OUTPUT  -- <stills>/selects.json  (atomic writes, one entry per clip that was ev
     select  : int 1..99 = chosen candidate <clip>_sNN.png, or null
     rerun   : true = candidates are not good enough, regenerate them (keeps old select)
     removed : present ONLY while true. REMOVED RULE: a removed clip must NEVER be sent to the
-              next step, even if it still has a select. GET /api/aleph_queue applies this.
+              next step, even if it still has a select. GET /api/redo_queue applies this.
 
 HTTP API  (all JSON; bound to 127.0.0.1 by default, there is NO auth -- keep it local)
     GET  /                     -> index.html (the UI)
@@ -57,7 +57,8 @@ HTTP API  (all JSON; bound to 127.0.0.1 by default, there is NO auth -- keep it 
     GET  /api/selects          -> selects.json ({} if missing)
     POST /api/selects          -> {"clip":"clip_001","select":3,"rerun":false,"removed":false}
                                   or a map {"clip_001": {...}, "clip_002": {...}}; merged per clip
-    GET  /api/aleph_queue      -> canonical hand-off list for the next step:
+    GET  /api/redo_queue       -> canonical hand-off list for the next step (aliases: /api/queue,
+                                  /api/aleph_queue kept for old scripts):
                                   {"queue":[{clip, select, still}], "removed_skipped":[...],
                                    "rerun":[...], "unpicked":[...], round, generated, rule}
                                   (/api/queue is an alias)
@@ -79,7 +80,7 @@ HOW AN ASSISTANT SHOULD HAND THIS TO A USER
     2. Start the server on the machine that holds the images (it must read them locally) and
        give the user the URL plus the shortcuts: 1-9/0 pick, R rerun, X remove from set,
        Up/Down next clip, N next undecided, P show picked, M slider/toggle.
-    3. Never edit selects.json while the user is reviewing; read it (or /api/aleph_queue) after.
+    3. Never edit selects.json while the user is reviewing; read it (or /api/redo_queue) after.
     4. Only clips in "queue" go to the next step. Clips in "rerun" need new candidates
        (regenerate, then start a new round with round.json). Never send "removed_skipped".
 """
@@ -253,7 +254,10 @@ def is_removed(entry):
 
 
 # ----------------------------------------------------------------------------- hand-off list
-def aleph_queue():
+VIDEO_BACKEND = {"backend": "ltx23_quality_ref_v2v", "endpoint": "fal-ai/ltx-2.3-quality/reference-video-to-video", "name": "LTX 2.3 ref video-to-video via fal"}
+
+
+def redo_queue():
     """Canonical list of picks for the next step. Removed clips are ALWAYS skipped.
     queue = (round) clips that have a valid select, are not rerun and are not removed."""
     rnd = read_round()
@@ -278,7 +282,11 @@ def aleph_queue():
         queue.append({"clip": c, "select": n, "still": opts[n]})
     return {"round": rnd["round"] if rnd else "", "queue": queue, "removed_skipped": removed,
             "rerun": rerun, "unpicked": unpicked, "generated": now_iso(),
-            "rule": "removed clips are never sent to the next step"}
+            "rule": "removed clips are never sent to the next step",
+            "video_backend": VIDEO_BACKEND}
+
+
+aleph_queue = redo_queue  # backward-compatible name
 
 
 # ----------------------------------------------------------------------------- HTTP handler
@@ -318,8 +326,8 @@ class Handler(BaseHTTPRequestHandler):
                 with SELECTS_LOCK:
                     data = read_selects()
                 return self._send(200, data, extra={"Cache-Control": "no-store"})
-            if path in ("/api/aleph_queue", "/api/queue"):
-                return self._send(200, aleph_queue(), extra={"Cache-Control": "no-store"})
+            if path in ("/api/redo_queue", "/api/queue", "/api/aleph_queue"):  # aleph_queue = legacy alias
+                return self._send(200, redo_queue(), extra={"Cache-Control": "no-store"})
             if path.startswith("/img/"):
                 return self._img(path[5:])
             return self._send(404, {"error": "not found"})
